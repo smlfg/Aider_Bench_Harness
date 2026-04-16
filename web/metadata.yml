@@ -1,0 +1,19 @@
+databases:
+  experiment:
+    tables:
+      runs:
+        hidden: false
+        sort: iteration
+      analysis:
+        hidden: false
+        sort: iteration
+      comparisons:
+        hidden: false
+        sort: iteration
+      trajectory:
+        hidden: false
+        sort: iteration
+      conventions:
+        hidden: false
+      calibration_runs:
+        hidden: true

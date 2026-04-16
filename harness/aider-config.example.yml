@@ -1,0 +1,5 @@
+# Example Aider config for this experiment. Keep secrets in .env.
+model: MiniMax-M2.7-highspeed
+auto-commits: false
+yes-always: true
+

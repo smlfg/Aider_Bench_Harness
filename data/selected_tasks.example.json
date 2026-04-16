@@ -1,0 +1,15 @@
+[
+  {
+    "instance_id": "example__example-1",
+    "task_id": "example__example-1",
+    "repo": "example/example",
+    "base_commit": "0000000000000000000000000000000000000000",
+    "problem_statement": "Synthetic smoke task. Do not use for real evaluation.",
+    "test_patch": "",
+    "environment_setup_commit": null,
+    "FAIL_TO_PASS": ["tests/test_example.py::test_bug"],
+    "PASS_TO_PASS": ["tests/test_example.py::test_existing"],
+    "version": null
+  }
+]
+

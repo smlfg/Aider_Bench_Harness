@@ -1,0 +1,31 @@
+**5 Agent-Eval-Frameworks — nach Reife sortiert:**
+
+     **1. [SWE-bench](https://github.com/princeton-nlp/SWE-bench) — Agent als Software Engineer**
+     - Testet Agenten an **echten GitHub Issues** (Python, JavaScript, etc.)
+     - Repo wird geklont, Patch wird erstellt, Tests laufen — klare Pass/Fail
+     - Dein `agent_arena.db` hat genau diese Struktur schon nachgebaut
+     - **Passt direkt zu deinem Use-Case**: Bugfix-Evaluation mit `tests_pass` als harte Metrik
+     - Problem: Nur Software-Engineering-Tasks
+
+     **2. [lm-evaluation-harness](https://github.com/EleutherAI/lm-evaluation-harness) — Der Standard für LLM-Benchmarks**
+     - 60+ Benchmarks (MMLU, HumanEval, MATH, GSM8K, etc.)
+     - Agenten tauchen hier als "Code-Agent" auf, aber das Framework ist primär für Models, nicht Agents mit Tools
+     - Du könntest es als **harte Metrik-Lieferant** nutzen: wenn du einen Agent auf HumanEval testest, hast du sofort vergleichbare Zahlen
+     - Gut dokumentiert, aktiv maintained
+
+     **3. [BigCode Evaluation Harness](https://github.com/bigcodeproject/bigcode-eval-harness) — Code-Generation Eval**
+     - Spezialisiert auf Code-Modell-Evaluation (HumanEval, MBPP, etc.)
+     - **Vorteil**: Test-Framework ist bereits eingebaut, du lieferst nur den Agent
+     - Hosted Models + API-Modelle werden unterstützt
+     -passt zu deinem AgentArena-Task-Set (phantom-import, fix_off_by_one, etc.)
+
+     **4. [OpenCompass](https://github.com/open-compass/opencompass) — Enterprise-Grade Eval Platform**
+     - Shanghai AI Lab, sehr aktiv, 50+ Benchmarks
+     - Unterstützt **Agent-Modus** (mit Tools, Memory, Plan)
+     -hat eingebaute Judge-Integration, Pairwise-Comparison, Leaderboards
+     - Würde gut zu deinem MVE-Ansatz passen: fertige Metric-Pipelines
+
+     **5. [WebArena / MiniWob++](https://github.com/ab不满情绪-ai-internship/webarena) — Agent-in-Browser-Eval**
+     - Agenten navigieren echte Webseiten (Reddit, Maps, etc.)
+     - Wenn dein Agent Harness Web-Interaktionen testet, ist das hier
+     - Dein Fokus ist aber eher Coding-Agent, daher wahrscheinlich weniger relevant

@@ -32,9 +32,12 @@ def _float_env(name: str) -> float:
 def load_config(env_path: Path | None = None) -> HarnessConfig:
     load_dotenv(env_path or PROJECT_ROOT / ".env")
     extra = os.environ.get("AIDER_EXTRA_ARGS", "--yes-always --no-auto-commits")
+    extra_args = shlex.split(extra)
+    if "--show-model-warnings" not in extra_args and "--no-show-model-warnings" not in extra_args:
+        extra_args.append("--no-show-model-warnings")
     return HarnessConfig(
         aider_model=os.environ.get("AIDER_MODEL", "MiniMax-M2.7-highspeed"),
-        aider_extra_args=tuple(shlex.split(extra)),
+        aider_extra_args=tuple(extra_args),
         minimax_api_key=os.environ.get("MINIMAX_API_KEY") or None,
         minimax_base_url=os.environ.get("MINIMAX_BASE_URL") or None,
         judge_model=os.environ.get("JUDGE_MODEL", "claude-sonnet-4.5"),
@@ -48,6 +51,10 @@ def load_config(env_path: Path | None = None) -> HarnessConfig:
 
 def subprocess_env(config: HarnessConfig) -> dict[str, str]:
     env = os.environ.copy()
+    # Ensure .venv/bin is first so we get the venv's aider, not ~/.local/bin/aider
+    venv_bin = str(PROJECT_ROOT / ".venv" / "bin")
+    old_path = env.get("PATH", "")
+    env["PATH"] = venv_bin + os.pathsep + old_path
     if config.minimax_api_key:
         env["MINIMAX_API_KEY"] = config.minimax_api_key
         env.setdefault("OPENAI_API_KEY", config.minimax_api_key)

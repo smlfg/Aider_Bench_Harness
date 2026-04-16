@@ -49,7 +49,7 @@ Alle Endpoints lokal, keine Auth.
 | `GET` | `/runs/{run_id}/patch` | Aktueller Inhalt von `git_diff.patch` (auch während Aider noch läuft) |
 | `POST` | `/runs/{run_id}/abort` | Schickt SIGTERM an den Subprocess. Nicht-graceful erlaubt. |
 
-**Harte Regel:** Nur **ein Run gleichzeitig**. `POST /runs` während ein Run läuft → 409 Conflict. Grund: Docker-Eval und Aider-Workdirs würden kollidieren. Sichtbar im UI als „Run blockiert — läuft bereits `<run_id>`".
+**Harte Regel:** Bis zu **10 Runs gleichzeitig**. `POST /runs` während 10 Runs laufen → 409 Conflict. Grund: Docker-Eval und Aider-Workdirs sollen isoliert bleiben. Sichtbar im UI als aktive Run-Liste plus Blockade-Banner bei Vollauslastung.
 
 ---
 

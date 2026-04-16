@@ -1,13 +1,15 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "type": "object",
-  "required": ["scope_adherence", "minimality", "diff_clarity", "judge_score", "rationale"],
+  "required": ["prompt_version", "scope_adherence", "minimality", "diff_clarity", "judge_score", "rationale", "verdict", "conclusion"],
   "properties": {
+    "prompt_version": {"type": "string"},
     "scope_adherence": {"type": "number", "minimum": 1, "maximum": 5},
     "minimality": {"type": "number", "minimum": 1, "maximum": 5},
     "diff_clarity": {"type": "number", "minimum": 1, "maximum": 5},
     "judge_score": {"type": "number", "minimum": 1, "maximum": 5},
-    "rationale": {"type": "string"}
+    "rationale": {"type": "string"},
+    "verdict": {"type": "string", "enum": ["support", "mixed", "reject"]},
+    "conclusion": {"type": "string"}
   }
 }
-

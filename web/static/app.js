@@ -4,6 +4,12 @@ let monitorEventSource = null;
 let currentMonitorRunId = null;
 let allRuns = [];
 
+// Inline live monitor state
+let liveMonitorES = null;
+let liveMonitorRunId = null;
+let liveMonitorTimer = null;
+let liveMonitorStartTime = null;
+
 // ── Tab switching ──────────────────────────────────────
 document.querySelectorAll('.tab-btn').forEach(btn => {
   btn.addEventListener('click', () => {
@@ -74,14 +80,26 @@ function formatPatch(text) {
   }).join('\n');
 }
 
+function renderActiveRunLinks(activeRuns) {
+  if (!activeRuns || activeRuns.length === 0) return '';
+  return activeRuns.map(r => {
+    const phase = r.phase ? ` <span class="badge badge-dim">${escHtml(r.phase)}</span>` : '';
+    return `<a href="#" onclick="openMonitor(${JSON.stringify(r.run_id)});return false;">${escHtml(r.run_id)}</a>${phase}`;
+  }).join(' · ');
+}
+
 // ── TAB: Live Monitor ──────────────────────────────
 async function loadLive() {
   try {
     const data = await api('/api/status');
-    const running = await api('/api/running');
+    const running = await api('/api/runs/active');
+    const activeRuns = running.active_runs || [];
+    const activeCount = running.active_run_count ?? running.active_count ?? activeRuns.length;
+    const activeLimit = running.max_active_runs ?? running.limit ?? 10;
     const tbody = document.getElementById('live-tbody');
     tbody.innerHTML = data.map(r => {
       const diff = (r.lines_added || 0) + (r.lines_removed || 0);
+      const tests = (r.tests_passed == null || r.tests_total == null) ? '-' : `${r.tests_passed}/${r.tests_total}`;
       return `<tr class="clickable-row" data-run-id="${r.run_id}">
         <td><span class="status-dot ${r.end_ts ? (r.infrastructure_error ? 'error' : 'completed') : 'running'}"></span></td>
         <td>${r.run_id}</td>
@@ -89,7 +107,7 @@ async function loadLive() {
         <td>${r.condition_id}</td>
         <td>${r.iteration}</td>
         <td>${statusBadge(r)}</td>
-        <td>${r.tests_passed}/${r.tests_total}</td>
+        <td>${tests}</td>
         <td>${fmtDuration(r.duration_seconds)}</td>
         <td>${diff}</td>
         <td>${r.infrastructure_error ? `<span class="badge badge-red infra-badge" title="${escHtml(r.error_detail || '').substring(0, 300)}">YES</span>` : '-'}</td>
@@ -99,11 +117,48 @@ async function loadLive() {
       tr.addEventListener('click', () => openDebrief(tr.dataset.runId));
     });
     const banner = document.getElementById('live-running-banner');
-    if (running.running) {
+    if (activeCount > 0) {
       banner.style.display = 'block';
-      banner.innerHTML = `Run in progress: <strong>${running.run_id}</strong> (${running.task_id}, ${running.condition}, phase: ${running.phase}) — <a href="#" onclick="openMonitor('${running.run_id}');return false;">Monitor</a>`;
+      banner.innerHTML = `Active runs (${activeCount}/${activeLimit}): ${renderActiveRunLinks(activeRuns)}`;
     } else {
       banner.style.display = 'none';
+    }
+
+    const launchBanner = document.getElementById('launch-blocking-banner');
+    const launchBtn = document.getElementById('launch-btn');
+    if (launchBanner) {
+      if (activeCount >= activeLimit) {
+        launchBanner.style.display = 'block';
+        launchBanner.innerHTML = `Run cap reached (${activeCount}/${activeLimit}). Wait for a slot or open one of the active runs above.`;
+      } else if (activeCount > 0) {
+        launchBanner.style.display = 'block';
+        launchBanner.innerHTML = `Active runs (${activeCount}/${activeLimit}): ${renderActiveRunLinks(activeRuns)}`;
+      } else {
+        launchBanner.style.display = 'none';
+        launchBanner.innerHTML = '';
+      }
+    }
+    if (launchBtn) {
+      launchBtn.disabled = activeCount >= activeLimit;
+    }
+
+    // ── Inline Live Monitor (SSE) ──
+    const panel = document.getElementById('live-monitor');
+    if (activeCount > 0) {
+      const current = activeRuns.find(r => r.run_id === liveMonitorRunId);
+      const target = current || activeRuns[0];
+      panel.style.display = 'block';
+      document.getElementById('lm-run-id').textContent = target.run_id;
+      document.getElementById('lm-open-btn').onclick = () => openMonitor(target.run_id);
+      if (liveMonitorRunId !== target.run_id) {
+        liveMonitorClose();
+        liveMonitorRunId = target.run_id;
+        liveMonitorStartTime = Date.now();
+        liveMonitorOpen(target.run_id);
+      }
+    } else {
+      panel.style.display = 'none';
+      liveMonitorClose();
     }
   } catch(e) { console.error('Live load failed:', e); }
 }
@@ -367,6 +422,34 @@ async function openDebrief(runId) {
       convContent.textContent = r.conventions_content;
     } else {
       convContent.textContent = '(conventions content not available)';
+    }
+
+    // Judge
+    const judgeMetaEl = document.getElementById('debrief-judge-meta');
+    const judgeContentEl = document.getElementById('debrief-judge-content');
+    const jr = r.judge_result;
+    if (jr) {
+      const verdict = (jr.verdict || 'mixed').toLowerCase();
+      const verdictCls = verdict === 'support' ? 'badge-green' : verdict === 'reject' ? 'badge-red' : 'badge-yellow';
+      const score = typeof jr.judge_score === 'number' ? jr.judge_score.toFixed(2) : (jr.judge_score ?? '-');
+      judgeMetaEl.innerHTML = `
+        <span class="badge ${verdictCls}">${escHtml(verdict.toUpperCase())}</span>
+        <span class="badge badge-dim">${escHtml(jr.prompt_version || 'unknown')}</span>
+        <span class="badge badge-dim">${escHtml(jr.judge_model || '')}</span>
+      `;
+      judgeContentEl.innerHTML = `
+        <div><strong>Score</strong>: ${escHtml(String(score))}</div>
+        <div><strong>Scope</strong>: ${escHtml(String(jr.scope_adherence ?? '-'))}</div>
+        <div><strong>Minimality</strong>: ${escHtml(String(jr.minimality ?? '-'))}</div>
+        <div><strong>Diff clarity</strong>: ${escHtml(String(jr.diff_clarity ?? '-'))}</div>
+        <div style="margin-top:8px;"><strong>Rationale</strong></div>
+        <div>${escHtml(jr.rationale || '(missing)')}</div>
+        <div style="margin-top:8px;"><strong>Conclusion</strong></div>
+        <div>${escHtml(jr.conclusion || '(missing)')}</div>
+      `;
+    } else {
+      judgeMetaEl.innerHTML = '<span class="badge badge-dim">not run yet</span>';
+      judgeContentEl.textContent = '(judge_result.json not available)';
     }
 
     // Artifacts

@@ -10,7 +10,8 @@ uv sync
 cp .env.example .env
 ```
 
-Fill `.env` with the MiniMax endpoint settings, `JUDGE_MODEL`, and token prices.
+Fill `.env` with the MiniMax endpoint settings, `JUDGE_MODEL` (default `openai/MiniMax-M2.7`), and token prices.
+`JUDGE_COMMAND` is optional; when unset, `harness-judge` uses the built-in two-stage judge.
 Keep real secrets out of versioned files.
 
 ## Required Preflight
@@ -58,4 +59,3 @@ uv run harness-summarize --iteration 1
 ```
 
 Each iteration is symmetric: 3 tasks x 5 runs x 2 conditions = 30 runs.
-

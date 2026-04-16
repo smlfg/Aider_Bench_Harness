@@ -311,6 +311,8 @@ def execute(args: argparse.Namespace) -> dict[str, Any]:
                 shutil.copyfile(conventions_path, repo_dir / "CONVENTIONS.md")
                 write_phase(artifacts_dir, "aider_running")
                 aider_cmd = [
+                    sys.executable,
+                    "-m",
                     "aider",
                     "--model",
                     args.model_name or config.aider_model,
@@ -393,6 +395,8 @@ def execute(args: argparse.Namespace) -> dict[str, Any]:
                 repo_dir = clone_repo(task, workdir)
                 shutil.copyfile(conventions_path, repo_dir / "CONVENTIONS.md")
                 aider_cmd = [
+                    sys.executable,
+                    "-m",
                     "aider",
                     "--model",
                     args.model_name or config.aider_model,
@@ -463,10 +467,13 @@ def execute(args: argparse.Namespace) -> dict[str, Any]:
     (artifacts_dir / "git_diff.patch").write_text(patch, encoding="utf-8")
     write_json(artifacts_dir / "tests.json", tests_json)
     judge_input = {
+        "prompt_version": "two_stage_v1",
         "task_id": task["instance_id"],
         "problem_statement": task["problem_statement"],
         "diff": patch,
         "tests": tests_json,
+        "agent_stdout": agent_stdout,
+        "agent_stderr": agent_stderr,
     }
     write_json(artifacts_dir / "judge_input.json", judge_input)
 

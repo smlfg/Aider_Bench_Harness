@@ -110,9 +110,10 @@
             <h3>Judge</h3>
             <p>Separater Schritt (<code>harness-judge</code>), nicht Teil von <code>run_once</code>.</p>
             <ul>
-              <li>Bewertet Code-Qualität: Scope Adherence, Minimality, Diff Clarity (je 1-5)</li>
-              <li>Braucht <code>JUDGE_COMMAND</code> in <code>.env</code></li>
-              <li>Ohne Command: <code>--allow-stub</code> → Neutral-Score 3.0</li>
+              <li>Bewertet in zwei Stufen: Rubrik-Scores, dann Konklusion</li>
+              <li>Rubriken: Scope Adherence, Minimality, Diff Clarity (je 1-5)</li>
+              <li><code>JUDGE_MODEL</code> in <code>.env</code> (Default: <code>openai/MiniMax-M2.7</code>); <code>JUDGE_COMMAND</code> ist optional für externe Wrapper</li>
+              <li>Ohne Command: nativer Zwei-Stufen-Judge; <code>--allow-stub</code> nur für Smoke-Tests</li>
             </ul>
           </div>
           <div class="info-card">
@@ -150,6 +151,23 @@
           </thead>
           <tbody id="live-tbody"></tbody>
         </table>
+      </div>
+
+      <!-- Inline live monitor panel -->
+      <div id="live-monitor" class="card" style="display:none;margin-top:12px;">
+        <div class="live-monitor-header">
+          <h3>Live: <span id="lm-run-id"></span></h3>
+          <div class="live-monitor-stats">
+            <span class="badge badge-dim" id="lm-phase">init</span>
+            <span id="lm-timer">0s</span>
+            <span id="lm-tokens" style="font-size:12px;color:var(--text-dim);"></span>
+            <button id="lm-open-btn" class="launch-btn" style="padding:3px 10px;font-size:11px;">Full Monitor</button>
+          </div>
+        </div>
+        <div class="live-monitor-body">
+          <pre id="lm-output" class="log-viewer"></pre>
+          <div id="lm-patch-preview" class="patch-viewer" style="font-size:11px;"></div>
+        </div>
       </div>
     </section>
 
@@ -349,6 +367,11 @@
       <h3>Input Prompt / Conventions</h3>
       <div id="debrief-conventions-meta" style="margin-bottom:8px;"></div>
       <div id="debrief-conventions-content" style="max-height:400px;overflow:auto;white-space:pre-wrap;font-size:12px;font-family:monospace;background:var(--bg);padding:8px;border-radius:4px;"></div>
+    </div>
+    <div class="card">
+      <h3>Judge</h3>
+      <div id="debrief-judge-meta" style="margin-bottom:8px;"></div>
+      <div id="debrief-judge-content" style="max-height:260px;overflow:auto;white-space:pre-wrap;font-size:12px;font-family:monospace;background:var(--bg);padding:8px;border-radius:4px;"></div>
     </div>
     <div class="card">
       <h3>Patch</h3>

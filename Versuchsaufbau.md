@@ -803,15 +803,22 @@ Sondern nur:
 - ist sie scope-treu?
 - ist der Diff verständlich?
 
+Der Judge läuft in zwei Stufen:
+1. Rubrik-Scores und `judge_score`
+2. kurze Konklusion mit klarer Tendenz
+
 ### Judge-Output
 
 ```json
 {
+  "prompt_version": "two_stage_v1",
   "scope_adherence": 4,
   "minimality": 5,
   "diff_clarity": 4,
   "judge_score": 4.33,
-  "rationale": "..."
+  "rationale": "...",
+  "verdict": "support",
+  "conclusion": "..."
 }
 ```
 

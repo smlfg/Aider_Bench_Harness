@@ -9,6 +9,7 @@ import subprocess
 import sys
 import threading
 import time
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -18,7 +19,16 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from sse_starlette.sse import EventSourceResponse
 
-from runner.db import connect, init_db
+from runner.config import load_config
+from runner.db import (
+    connect,
+    delete_run_registry_row,
+    fetch_run_registry_row,
+    fetch_run_registry_rows,
+    init_db,
+    upsert_run_registry,
+    update_run_registry,
+)
 from runner.run_once import is_infrastructure_error
 from runner.paths import DATA_DIR, HARNESS_DIR, RESULTS_DIR, ensure_project_dirs
 
@@ -26,9 +36,18 @@ app = FastAPI(title="Harness Dashboard")
 
 STATIC_DIR = Path(__file__).resolve().parent / "static"
 DB_PATH = RESULTS_DIR / "experiment.db"
+MAX_ACTIVE_RUNS = 10
+ACTIVE_REGISTRY_STATUSES = {"starting", "running", "judging"}
+TERMINAL_REGISTRY_STATUSES = {
+    "completed",
+    "failed",
+    "cancelled",
+    "failed_to_start",
+    "orphaned",
+}
 
-_active_run: dict[str, Any] | None = None
-_active_lock = threading.Lock()
+_launch_lock = threading.Lock()
+_launch_processes: dict[str, subprocess.Popen[Any]] = {}
 
 
 class LaunchRequest(BaseModel):
@@ -47,6 +66,293 @@ def _db() -> sqlite3.Connection:
 
 def _rows_to_dicts(rows: list[sqlite3.Row]) -> list[dict[str, Any]]:
     return [dict(r) for r in rows]
+
+
+def _read_phase(artifacts_dir: Path) -> str:
+    phase_path = artifacts_dir / ".phase"
+    if not phase_path.exists():
+        return "starting"
+    try:
+        return phase_path.read_text(encoding="utf-8").strip() or "starting"
+    except Exception:
+        return "unknown"
+
+
+def _utc_now() -> str:
+    return datetime.now(timezone.utc).isoformat()
+
+
+def _is_pid_alive(pid: int | None) -> bool:
+    if pid is None or pid <= 0:
+        return False
+    try:
+        os.kill(pid, 0)
+        return True
+    except ProcessLookupError:
+        return False
+    except PermissionError:
+        return True
+
+
+def _read_json(path: Path) -> dict[str, Any] | None:
+    if not path.exists():
+        return None
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except Exception:
+        return None
+
+
+def _registry_status_is_active(status: str | None) -> bool:
+    return status in ACTIVE_REGISTRY_STATUSES
+
+
+def _registry_row_to_snapshot(row: sqlite3.Row) -> dict[str, Any]:
+    data = dict(row)
+    data["condition"] = data.get("condition_id")
+    data["phase"] = data.get("last_phase") or _read_phase(Path(data["artifacts_dir"]))
+    data["source"] = "registry"
+    data["active"] = _registry_status_is_active(data.get("status"))
+    return data
+
+
+def _find_run_row(conn: sqlite3.Connection, run_id: str) -> sqlite3.Row | None:
+    return conn.execute("SELECT * FROM runs WHERE run_id = ?", (run_id,)).fetchone()
+
+
+def _resolve_terminal_status(
+    *,
+    run_row: sqlite3.Row | None,
+    run_meta: dict[str, Any] | None,
+    phase: str,
+    pid_alive: bool,
+    had_pid: bool,
+) -> str:
+    if run_row is not None:
+        if int(run_row["task_success"]) == 1 and int(run_row["infrastructure_error"]) == 0:
+            return "completed"
+        if int(run_row["infrastructure_error"]) == 1:
+            return "failed"
+        return "failed"
+    if run_meta is not None:
+        if bool(run_meta.get("task_success")) and not bool(
+            run_meta.get("infrastructure_error")
+        ):
+            return "completed"
+        if bool(run_meta.get("infrastructure_error")):
+            return "failed"
+        return "failed"
+    if not had_pid:
+        return "failed_to_start"
+    if phase in {"done", "error"} and not pid_alive:
+        return "failed"
+    return "orphaned"
+
+
+def _reconcile_registry_row_locked(
+    conn: sqlite3.Connection, row: sqlite3.Row
+) -> dict[str, Any]:
+    snapshot = dict(row)
+    run_id = row["run_id"]
+    artifacts_dir = Path(row["artifacts_dir"])
+    phase = _read_phase(artifacts_dir)
+    run_meta = _read_json(artifacts_dir / "run_meta.json")
+    run_row = _find_run_row(conn, run_id)
+    pid = row["pid"]
+    pid_alive = _is_pid_alive(pid)
+    had_pid = pid is not None
+    status = row["status"]
+    updated_ts = _utc_now()
+
+    if status in TERMINAL_REGISTRY_STATUSES:
+        if phase and phase != row["last_phase"]:
+            update_run_registry(
+                conn,
+                run_id,
+                updated_ts=updated_ts,
+                last_phase=phase,
+            )
+        snapshot["last_phase"] = phase or row["last_phase"]
+        snapshot["phase"] = snapshot["last_phase"]
+        snapshot["source"] = "registry"
+        snapshot["active"] = False
+        return snapshot
+
+    new_status = status
+    if pid_alive:
+        if phase == "docker_eval":
+            new_status = "judging"
+        elif phase == "aider_running":
+            new_status = "running"
+        elif phase in {"starting", "setup_repo"}:
+            new_status = "starting"
+        else:
+            new_status = status if status in ACTIVE_REGISTRY_STATUSES else "starting"
+        update_run_registry(
+            conn,
+            run_id,
+            status=new_status,
+            updated_ts=updated_ts,
+            last_phase=phase,
+        )
+        snapshot.update(
+            status=new_status,
+            updated_ts=updated_ts,
+            last_phase=phase,
+            phase=phase,
+            source="registry",
+            active=True,
+        )
+        return snapshot
+
+    terminal_status = _resolve_terminal_status(
+        run_row=run_row,
+        run_meta=run_meta,
+        phase=phase,
+        pid_alive=pid_alive,
+        had_pid=had_pid,
+    )
+    terminal_ts = updated_ts
+    update_run_registry(
+        conn,
+        run_id,
+        status=terminal_status,
+        updated_ts=updated_ts,
+        last_phase=phase,
+        terminal_ts=terminal_ts,
+    )
+    snapshot.update(
+        status=terminal_status,
+        updated_ts=updated_ts,
+        last_phase=phase,
+        phase=phase,
+        terminal_ts=terminal_ts,
+        source="registry",
+        active=False,
+    )
+    return snapshot
+
+
+def _reconcile_registry_locked(
+    conn: sqlite3.Connection,
+) -> list[dict[str, Any]]:
+    rows = fetch_run_registry_rows(conn)
+    snapshots: list[dict[str, Any]] = []
+    for row in rows:
+        snapshots.append(_reconcile_registry_row_locked(conn, row))
+    return snapshots
+
+
+def _active_registry_rows(conn: sqlite3.Connection) -> list[dict[str, Any]]:
+    rows = fetch_run_registry_rows(conn, statuses=tuple(ACTIVE_REGISTRY_STATUSES))
+    snapshots = []
+    for row in rows:
+        snapshot = _registry_row_to_snapshot(_reconcile_registry_row_locked(conn, row))
+        if snapshot.get("active"):
+            snapshots.append(snapshot)
+    return snapshots
+
+
+def _filesystem_active_runs() -> dict[str, dict[str, Any]]:
+    if not RESULTS_DIR.exists():
+        return {}
+    active: dict[str, dict[str, Any]] = {}
+    for phase_file in RESULTS_DIR.rglob(".phase"):
+        try:
+            phase = phase_file.read_text(encoding="utf-8").strip()
+        except Exception:
+            continue
+        if phase in ("done", "error") or not phase:
+            continue
+        artifacts_dir = phase_file.parent
+        run_id = artifacts_dir.name
+        if len(artifacts_dir.parents) < 2:
+            continue
+        task_dir = artifacts_dir.parent
+        condition_dir = task_dir.parent
+        active[run_id] = {
+            "run_id": run_id,
+            "task_id": task_dir.name,
+            "condition_id": condition_dir.name,
+            "condition": condition_dir.name,
+            "iteration": None,
+            "phase": phase,
+            "artifacts_dir": str(artifacts_dir),
+            "source": "filesystem",
+        }
+    return active
+
+
+def _active_runs_payload() -> dict[str, Any]:
+    with _launch_lock:
+        with _db() as conn:
+            active_runs = _active_registry_rows(conn)
+    active_list = sorted(
+        active_runs,
+        key=lambda r: (r.get("start_ts") or "", r.get("run_id") or ""),
+        reverse=True,
+    )
+    payload: dict[str, Any] = {
+        "running": bool(active_list),
+        "active_count": len(active_list),
+        "active_run_count": len(active_list),
+        "limit": MAX_ACTIVE_RUNS,
+        "max_active_runs": MAX_ACTIVE_RUNS,
+        "active_runs": active_list,
+    }
+    if active_list:
+        first = active_list[0]
+        payload.update(
+            {
+                "run_id": first["run_id"],
+                "task_id": first.get("task_id"),
+                "condition": first.get("condition"),
+                "phase": first.get("phase"),
+            }
+        )
+    return payload
+
+
+def _find_artifacts_dir_for_run(run_id: str) -> Path | None:
+    with _launch_lock:
+        conn = _db()
+        try:
+            row = conn.execute(
+                "SELECT artifacts_dir FROM runs WHERE run_id = ?", (run_id,)
+            ).fetchone()
+            if row:
+                return Path(row["artifacts_dir"])
+            reg = fetch_run_registry_row(conn, run_id)
+            if reg:
+                return Path(reg["artifacts_dir"])
+        finally:
+            conn.close()
+    for entry in _filesystem_active_runs().values():
+        if entry["run_id"] == run_id:
+            return Path(entry["artifacts_dir"])
+    return None
+
+
+def _reconcile_registry() -> None:
+    with _launch_lock:
+        with _db() as conn:
+            _reconcile_registry_locked(conn)
+
+
+@app.on_event("startup")
+async def _startup_reconcile() -> None:
+    init_db()
+    _reconcile_registry()
+    threading.Thread(target=_background_reconcile, daemon=True).start()
+
+
+def _background_reconcile() -> None:
+    while True:
+        time.sleep(10)
+        try:
+            _reconcile_registry()
+        except Exception:
+            pass
 
 
 # ── Existing endpoints ────────────────────────────────────────────────
@@ -95,38 +401,60 @@ async def api_runs(iteration: int | None = None, condition: str | None = None):
 
 @app.get("/api/runs/{run_id}")
 async def api_run_detail(run_id: str):
-    conn = _db()
-    try:
-        row = conn.execute(
-            "SELECT r.*, c.content AS conventions_content, "
-            "c.parent_hash AS conventions_parent_hash, "
-            "c.mutation_note AS conventions_mutation_note "
-            "FROM runs r LEFT JOIN conventions c ON r.conventions_hash = c.conventions_hash "
-            "WHERE r.run_id = ?",
-            (run_id,),
-        ).fetchone()
-        if not row:
-            raise HTTPException(404, f"Run {run_id} not found")
-        result = dict(row)
-        art_dir = Path(result["artifacts_dir"]) if result.get("artifacts_dir") else None
-        if art_dir and art_dir.exists():
-            for fname in (
-                "agent_stdout.log",
-                "agent_stderr.log",
-                "git_diff.patch",
-                "tests.json",
-                "run_meta.json",
-                "judge_result.json",
-            ):
-                fpath = art_dir / fname
-                key = "has_" + fname.replace(".", "_")
-                result[key] = fpath.exists() and fpath.stat().st_size > 0
-            phase_path = art_dir / ".phase"
-            if phase_path.exists():
-                result["phase"] = phase_path.read_text(encoding="utf-8").strip()
-        return result
-    finally:
-        conn.close()
+    with _launch_lock:
+        with _db() as conn:
+            row = conn.execute(
+                "SELECT r.*, c.content AS conventions_content, "
+                "c.parent_hash AS conventions_parent_hash, "
+                "c.mutation_note AS conventions_mutation_note "
+                "FROM runs r LEFT JOIN conventions c ON r.conventions_hash = c.conventions_hash "
+                "WHERE r.run_id = ?",
+                (run_id,),
+            ).fetchone()
+            registry_row = fetch_run_registry_row(conn, run_id)
+            if not row and not registry_row:
+                raise HTTPException(404, f"Run {run_id} not found")
+            result = dict(row) if row else {}
+            if registry_row:
+                registry = _registry_row_to_snapshot(
+                    _reconcile_registry_row_locked(conn, registry_row)
+                )
+                result.setdefault("run_id", registry["run_id"])
+                result.setdefault("task_id", registry["task_id"])
+                result.setdefault("condition_id", registry["condition_id"])
+                result.setdefault("iteration", registry["iteration"])
+                result.setdefault("artifacts_dir", registry["artifacts_dir"])
+                result.setdefault("conventions_path", registry["conventions_path"])
+                result.setdefault("model_name", registry["model_name"])
+                result.setdefault("start_ts", registry["start_ts"])
+                result.setdefault("phase", registry.get("phase"))
+                result.setdefault("status", registry.get("status"))
+                result.setdefault("active", registry.get("active"))
+            art_dir = Path(result["artifacts_dir"]) if result.get("artifacts_dir") else None
+            if art_dir and art_dir.exists():
+                for fname in (
+                    "agent_stdout.log",
+                    "agent_stderr.log",
+                    "git_diff.patch",
+                    "tests.json",
+                    "run_meta.json",
+                    "judge_result.json",
+                ):
+                    fpath = art_dir / fname
+                    key = "has_" + fname.replace(".", "_")
+                    result[key] = fpath.exists() and fpath.stat().st_size > 0
+                judge_path = art_dir / "judge_result.json"
+                if judge_path.exists():
+                    try:
+                        result["judge_result"] = json.loads(
+                            judge_path.read_text(encoding="utf-8")
+                        )
+                    except Exception:
+                        result["judge_result_error"] = "Unable to parse judge_result.json"
+                phase_path = art_dir / ".phase"
+                if phase_path.exists():
+                    result["phase"] = phase_path.read_text(encoding="utf-8").strip()
+            return result
 
 
 @app.get("/api/analysis")
@@ -173,18 +501,31 @@ async def api_trajectory():
 
 @app.get("/api/status")
 async def api_status():
-    conn = _db()
-    try:
-        rows = conn.execute(
-            "SELECT run_id, task_id, condition_id, iteration, task_success, "
-            "tests_passed, tests_total, duration_seconds, start_ts, end_ts, "
-            "files_changed, lines_added, lines_removed, judge_score, artifacts_dir, "
-            "infrastructure_error, failure_kind, error_detail "
-            "FROM runs ORDER BY start_ts DESC LIMIT 20"
-        ).fetchall()
-        return _rows_to_dicts(rows)
-    finally:
-        conn.close()
+    with _launch_lock:
+        with _db() as conn:
+            registry_rows = [
+                r
+                for r in _active_registry_rows(conn)
+                if _registry_status_is_active(r.get("status"))
+            ]
+            run_rows = conn.execute(
+                "SELECT run_id, task_id, condition_id, iteration, task_success, "
+                "tests_passed, tests_total, duration_seconds, start_ts, end_ts, "
+                "files_changed, lines_added, lines_removed, judge_score, artifacts_dir, "
+                "infrastructure_error, failure_kind, error_detail "
+                "FROM runs ORDER BY start_ts DESC LIMIT 20"
+            ).fetchall()
+            merged: dict[str, dict[str, Any]] = {
+                row["run_id"]: dict(row) for row in run_rows
+            }
+            for row in registry_rows:
+                merged[row["run_id"]] = row
+            ordered = sorted(
+                merged.values(),
+                key=lambda r: (r.get("start_ts") or "", r.get("run_id") or ""),
+                reverse=True,
+            )
+            return ordered[:20]
 
 
 @app.get("/api/completed-iterations")
@@ -215,16 +556,9 @@ async def api_artifact(run_id: str, filename: str):
     }
     if filename not in allowed:
         raise HTTPException(403, "Filename not allowed")
-    conn = _db()
-    try:
-        row = conn.execute(
-            "SELECT artifacts_dir FROM runs WHERE run_id = ?", (run_id,)
-        ).fetchone()
-    finally:
-        conn.close()
-    if not row:
+    art_dir = _find_artifacts_dir_for_run(run_id)
+    if art_dir is None:
         raise HTTPException(404, f"Run {run_id} not found")
-    art_dir = Path(row["artifacts_dir"])
     fpath = art_dir / filename
     if not fpath.exists():
         raise HTTPException(404, f"File {filename} not found")
@@ -242,16 +576,9 @@ async def api_log_stream(run_id: str, stream: str):
     fname = f"{stream}.log" if stream in ("stdout", "stderr") else f"{stream}.log"
     if stream in ("stdout", "stderr"):
         fname = f"agent_{stream}.log"
-    conn = _db()
-    try:
-        row = conn.execute(
-            "SELECT artifacts_dir FROM runs WHERE run_id = ?", (run_id,)
-        ).fetchone()
-    finally:
-        conn.close()
-    if not row:
+    art_dir = _find_artifacts_dir_for_run(run_id)
+    if art_dir is None:
         raise HTTPException(404, f"Run {run_id} not found")
-    art_dir = Path(row["artifacts_dir"])
     fpath = art_dir / fname
 
     async def event_generator():
@@ -414,43 +741,18 @@ async def api_preflight():
 
 @app.get("/api/running")
 async def api_running():
-    with _active_lock:
-        if _active_run is None:
-            return {"running": False}
-        proc = _active_run.get("process")
-        if proc is None or proc.poll() is not None:
-            return {
-                "running": False,
-                "run_id": _active_run.get("run_id"),
-                "finished": True,
-            }
-        phase_path = Path(_active_run["artifacts_dir"]) / ".phase"
-        phase = (
-            phase_path.read_text(encoding="utf-8").strip()
-            if phase_path.exists()
-            else "unknown"
-        )
-        return {
-            "running": True,
-            "run_id": _active_run["run_id"],
-            "task_id": _active_run["task_id"],
-            "condition": _active_run["condition"],
-            "phase": phase,
-        }
+    return _active_runs_payload()
+
+
+@app.get("/api/runs/active")
+async def api_active_runs():
+    return _active_runs_payload()
 
 
 @app.post("/api/runs")
 async def api_launch_run(req: LaunchRequest):
-    global _active_run
-    with _active_lock:
-        if _active_run is not None:
-            proc = _active_run.get("process")
-            if proc is not None and proc.poll() is None:
-                raise HTTPException(
-                    409, f"Run already in progress: {_active_run['run_id']}"
-                )
-
     init_db()
+    config = load_config()
     task_id = req.task_id
     condition = req.condition
     iteration = req.iteration
@@ -480,65 +782,145 @@ async def api_launch_run(req: LaunchRequest):
         conventions_path,
     ]
 
-    proc = subprocess.Popen(
-        cmd,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        text=True,
-        encoding="utf-8",
-        errors="replace",
-    )
+    now = _utc_now()
+    with _launch_lock:
+        with _db() as conn:
+            active_rows = _active_registry_rows(conn)
+            active_map = {row["run_id"]: row for row in active_rows}
+            if run_id in active_map:
+                raise HTTPException(409, f"Run already in progress: {run_id}")
+            if len(active_map) >= MAX_ACTIVE_RUNS:
+                raise HTTPException(
+                    409,
+                    {
+                        "error": "active_run_cap_reached",
+                        "message": f"Maximum of {MAX_ACTIVE_RUNS} active runs reached",
+                        "active_run_count": len(active_map),
+                        "max_active_runs": MAX_ACTIVE_RUNS,
+                    },
+                )
+            upsert_run_registry(
+                conn,
+                {
+                    "run_id": run_id,
+                    "task_id": task_id,
+                    "condition_id": condition,
+                    "iteration": iteration,
+                    "model_name": config.aider_model,
+                    "conventions_path": conventions_path,
+                    "status": "starting",
+                    "pid": None,
+                    "artifacts_dir": str(artifacts_dir),
+                    "start_ts": now,
+                    "updated_ts": now,
+                    "last_phase": "starting",
+                    "error_detail": None,
+                    "terminal_ts": None,
+                },
+            )
 
-    with _active_lock:
-        _active_run = {
-            "run_id": run_id,
-            "task_id": task_id,
-            "condition": condition,
-            "process": proc,
-            "artifacts_dir": str(artifacts_dir),
-        }
+    try:
+        proc = subprocess.Popen(
+            cmd,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+    except Exception:
+        with _launch_lock:
+            with _db() as conn:
+                update_run_registry(
+                    conn,
+                    run_id,
+                    status="failed_to_start",
+                    updated_ts=_utc_now(),
+                    terminal_ts=_utc_now(),
+                )
+        raise
+
+    with _launch_lock:
+        _launch_processes[run_id] = proc
+        with _db() as conn:
+            update_run_registry(
+                conn,
+                run_id,
+                pid=proc.pid,
+                status="running",
+                updated_ts=_utc_now(),
+                last_phase="starting",
+                error_detail=None,
+            )
 
     def _cleanup():
         proc.wait()
-        with _active_lock:
-            if _active_run and _active_run.get("run_id") == run_id:
-                _active_run["process"] = None
+        with _launch_lock:
+            _launch_processes.pop(run_id, None)
+            with _db() as conn:
+                row = fetch_run_registry_row(conn, run_id)
+                if row is None:
+                    return
+                reconciled = _reconcile_registry_row_locked(conn, row)
+                if reconciled.get("status") in ACTIVE_REGISTRY_STATUSES:
+                    meta = _read_json(artifacts_dir / "run_meta.json")
+                    if meta is not None:
+                        terminal = _resolve_terminal_status(
+                            run_row=_find_run_row(conn, run_id),
+                            run_meta=meta,
+                            phase=_read_phase(artifacts_dir),
+                            pid_alive=False,
+                            had_pid=True,
+                        )
+                    else:
+                        terminal = "failed"
+                    update_run_registry(
+                        conn,
+                        run_id,
+                        status=terminal,
+                        updated_ts=_utc_now(),
+                        terminal_ts=_utc_now(),
+                        last_phase=_read_phase(artifacts_dir),
+                    )
 
     threading.Thread(target=_cleanup, daemon=True).start()
 
-    return {"run_id": run_id, "status": "starting", "artifacts_dir": str(artifacts_dir)}
+    return {
+        "run_id": run_id,
+        "status": "starting",
+        "artifacts_dir": str(artifacts_dir),
+        "active_run_count": len(_active_runs_payload()["active_runs"]),
+        "max_active_runs": MAX_ACTIVE_RUNS,
+    }
 
 
 @app.post("/api/runs/{run_id}/abort")
 async def api_abort_run(run_id: str):
-    with _active_lock:
-        if _active_run is None or _active_run["run_id"] != run_id:
-            raise HTTPException(404, f"No active run with id {run_id}")
-        proc = _active_run.get("process")
-        if proc is None or proc.poll() is not None:
-            raise HTTPException(400, f"Run {run_id} is not running")
-        proc.send_signal(signal.SIGTERM)
-        return {"status": "terminating", "run_id": run_id}
+    with _launch_lock:
+        with _db() as conn:
+            row = fetch_run_registry_row(conn, run_id)
+            if row is None or not _registry_status_is_active(row["status"]):
+                raise HTTPException(404, f"No active run with id {run_id}")
+            proc = _launch_processes.get(run_id)
+            pid = row["pid"]
+            if proc is not None and proc.poll() is None:
+                proc.send_signal(signal.SIGTERM)
+            elif pid is not None and _is_pid_alive(pid):
+                os.kill(pid, signal.SIGTERM)
+            else:
+                raise HTTPException(400, f"Run {run_id} is not running")
+            update_run_registry(
+                conn,
+                run_id,
+                status="cancelled",
+                updated_ts=_utc_now(),
+                terminal_ts=_utc_now(),
+            )
+            return {"status": "terminating", "run_id": run_id}
 
 
 @app.get("/api/runs/{run_id}/stream")
 async def api_run_stream(run_id: str):
-    conn = _db()
-    try:
-        row = conn.execute(
-            "SELECT artifacts_dir FROM runs WHERE run_id = ?", (run_id,)
-        ).fetchone()
-    finally:
-        conn.close()
-
-    if row:
-        art_dir = Path(row["artifacts_dir"])
-    else:
-        with _active_lock:
-            if _active_run and _active_run["run_id"] == run_id:
-                art_dir = Path(_active_run["artifacts_dir"])
-            else:
-                raise HTTPException(404, f"Run {run_id} not found")
+    art_dir = _find_artifacts_dir_for_run(run_id)
+    if art_dir is None:
+        raise HTTPException(404, f"Run {run_id} not found")
 
     stdout_path = art_dir / "agent_stdout.log"
     stderr_path = art_dir / "agent_stderr.log"
@@ -615,17 +997,14 @@ async def _async_sleep(seconds: float):
 
 @app.delete("/api/runs/{run_id}")
 async def api_delete_run(run_id: str):
-    conn = _db()
-    try:
+    with _db() as conn:
         row = conn.execute(
             "SELECT artifacts_dir FROM runs WHERE run_id = ?", (run_id,)
         ).fetchone()
-        if not row:
-            raise HTTPException(404, f"Run {run_id} not found")
-        conn.execute("DELETE FROM runs WHERE run_id = ?", (run_id,))
+        if row:
+            conn.execute("DELETE FROM runs WHERE run_id = ?", (run_id,))
+        delete_run_registry_row(conn, run_id)
         conn.commit()
-    finally:
-        conn.close()
     return {"status": "deleted", "run_id": run_id}
 
 

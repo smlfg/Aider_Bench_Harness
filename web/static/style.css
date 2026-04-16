@@ -406,3 +406,61 @@ select, input {
 .pf-check {
   font-size: 12px;
 }
+
+/* Inline Live Monitor (in Live tab) */
+#live-monitor {
+  animation: slideIn 0.2s ease-out;
+}
+@keyframes slideIn {
+  from { opacity: 0; transform: translateY(-8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.live-monitor-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+}
+.live-monitor-header h3 { margin: 0; font-size: 14px; }
+.live-monitor-stats {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+}
+#lm-timer {
+  font-family: monospace;
+  color: var(--text-dim);
+}
+.live-monitor-body {
+  display: grid;
+  grid-template-columns: 1fr 280px;
+  gap: 8px;
+}
+#lm-output {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 8px;
+  font-family: monospace;
+  font-size: 11px;
+  color: var(--text);
+  overflow: auto;
+  max-height: 280px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+#lm-patch-preview {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 8px;
+  font-family: monospace;
+  font-size: 11px;
+  color: var(--text-dim);
+  overflow: auto;
+  max-height: 280px;
+  white-space: pre-wrap;
+}
+.badge-blue { background: #1e3a5f; color: #60a5fa; border-color: #2563eb; }

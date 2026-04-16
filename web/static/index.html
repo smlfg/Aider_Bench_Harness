@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Harness Dashboard</title>
+  <link rel="stylesheet" href="/static/style.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+</head>
+<body>
+  <header>
+    <h1>Harness Eval Dashboard</h1>
+    <nav>
+      <button class="tab-btn active" data-tab="info">Info</button>
+      <button class="tab-btn" data-tab="live">Live</button>
+      <button class="tab-btn" data-tab="launch">Launch</button>
+      <button class="tab-btn" data-tab="iteration">Iteration</button>
+      <button class="tab-btn" data-tab="trajectory">Trajectory</button>
+      <button class="tab-btn" data-tab="runs">Runs</button>
+    </nav>
+  </header>
+
+  <main>
+    <!-- TAB: Info -->
+    <section id="tab-info" class="tab-content active">
+      <div class="info-section">
+        <h2>Versuchsaufbau</h2>
+        <div class="info-card info-card-wide" style="padding:0;border:none;background:transparent;">
+          <img src="/static/experiment.svg" alt="Versuchsaufbau — Iteratives CONVENTIONS.md-Experiment" style="width:100%;display:block;">
+        </div>
+      </div>
+
+      <div class="info-section">
+        <h2>Das Experiment</h2>
+        <div class="info-grid">
+          <div class="info-card">
+            <h3>Ziel</h3>
+            <p>Kann man den Effekt kleiner &Auml;nderungen an einer Markdown-Instruktionsdatei (<code>CONVENTIONS.md</code>) bei einem einfachen Coding-Harness belastbar messen?</p>
+            <p>Das Experiment ist absichtlich klein und falsifizierbar. Es soll kl&auml;ren, ob die Methode lebt oder stirbt.</p>
+          </div>
+          <div class="info-card">
+            <h3>Setup</h3>
+            <ul>
+              <li><strong>Harness:</strong> Aider</li>
+              <li><strong>Modell:</strong> MiniMax-M2.7-highspeed</li>
+              <li><strong>Tasks:</strong> 3 Python-Bugfix-Tasks aus SWE-bench Lite</li>
+              <li><strong>Runs:</strong> 5 pro Task pro Condition (Baseline + Candidate)</li>
+              <li><strong>Optimierungsobjekt:</strong> Genau eine Datei &mdash; <code>CONVENTIONS.md</code></li>
+            </ul>
+          </div>
+          <div class="info-card">
+            <h3>Metriken</h3>
+            <table class="info-metric-table">
+              <thead><tr><th>Priorit&auml;t</th><th>Metric</th><th>Beschreibung</th></tr></thead>
+              <tbody>
+                <tr><td>Prim&auml;r</td><td><code>task_success</code></td><td>Alle Tests bestanden (0/1)</td></tr>
+                <tr><td>Prim&auml;r</td><td><code>tests_passed / tests_total</code></td><td>Anteil bestandener Tests</td></tr>
+                <tr><td>Sekund&auml;r</td><td><code>diff_size</code></td><td>lines_added + lines_removed (LOC)</td></tr>
+                <tr><td>Sekund&auml;r</td><td><code>duration_seconds</code></td><td>Laufzeit</td></tr>
+                <tr><td>Terti&auml;r</td><td><code>judge_score</code></td><td>LLM-as-Judge Tiebreaker (1&ndash;5)</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="info-card">
+            <h3>Statistik</h3>
+            <ul>
+              <li><strong>Wilson-CI</strong> f&uuml;r task_success (Bernoulli-Intervall)</li>
+              <li><strong>Bootstrap-CI</strong> f&uuml;r stetige Metriken (pass_rate, diff_size, duration)</li>
+              <li><strong>Fisher's Exact Test</strong> f&uuml;r task_success (Baseline vs. Candidate)</li>
+              <li><strong>Mann-Whitney U</strong> f&uuml;r Ordinal-/Stetigvergleiche</li>
+              <li><strong>Cliff's Delta</strong> als Effect Size</li>
+              <li><strong>Pareto-Frontier</strong>: Iterationen dominieren, wenn success_rate gleich oder h&ouml;her UND diff_size gleich oder kleiner</li>
+            </ul>
+          </div>
+          </div>
+        </div>
+      </div>
+
+<div class="info-section">
+        <h2>Eval-Pipeline</h2>
+        <div class="info-card info-card-wide" style="padding:0;border:none;background:transparent;">
+          <img src="/static/pipeline.svg" alt="Eval-Pipeline Architecture Diagram" style="width:100%;display:block;">
+        </div>
+        <div class="info-grid">
+          <div class="info-card">
+            <h3>Voraussetzungen</h3>
+            <p class="info-subtle">Live-Check beim Laden dieser Seite:</p>
+            <table class="info-metric-table" id="preflight-checks">
+              <thead><tr><th>Komponente</th><th>Status</th></tr></thead>
+              <tbody>
+                <tr><td>Docker Daemon</td><td id="pf-docker" class="pf-check">…</td></tr>
+                <tr><td>swebench-Modul</td><td id="pf-swebench" class="pf-check">…</td></tr>
+                <tr><td>datasets-Modul</td><td id="pf-datasets" class="pf-check">…</td></tr>
+                <tr><td>aider CLI</td><td id="pf-aider" class="pf-check">…</td></tr>
+                <tr><td>MINIMAX_API_KEY</td><td id="pf-apikey" class="pf-check">…</td></tr>
+                <tr><td>LiteLLM Completion</td><td id="pf-litellm" class="pf-check">…</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="info-card">
+            <h3><code>--skip-eval</code></h3>
+            <p>Evaluierung wird übersprungen. Kein Docker nötig.</p>
+            <ul>
+              <li><code>tests_total=0</code>, <code>task_success=False</code></li>
+              <li>Patch wird trotzdem gespeichert (<code>git_diff.patch</code>)</li>
+              <li>Eval kann nachträglich nachgeholt werden</li>
+              <li>Nützlich für schnelle Iteration oder wenn Docker nicht verfügbar</li>
+            </ul>
+          </div>
+          <div class="info-card">
+            <h3>Judge</h3>
+            <p>Separater Schritt (<code>harness-judge</code>), nicht Teil von <code>run_once</code>.</p>
+            <ul>
+              <li>Bewertet Code-Qualität: Scope Adherence, Minimality, Diff Clarity (je 1-5)</li>
+              <li>Braucht <code>JUDGE_COMMAND</code> in <code>.env</code></li>
+              <li>Ohne Command: <code>--allow-stub</code> → Neutral-Score 3.0</li>
+            </ul>
+          </div>
+          <div class="info-card">
+            <h3>Hinweise</h3>
+            <ul>
+              <li><strong>Doppelter Eval-Bug:</strong> Bei normalem Lauf wird eval zweimal getriggert (Performance-Problem, kein Korrektheits-Problem — zweiter Lauf findet gecachten Report)</li>
+              <li><strong><code>tokens_in = 0</code></strong> → Infrastructure Error (Modell-Auth, Routing, etc.)</li>
+              <li><strong><code>infrastructure_error = true</code></strong> → Run fließt <em>nicht</em> in <code>analyze.py</code>-Statistiken ein</li>
+              <li><strong>Error-Detail:</strong> Infra-Fehler zeigen im Debrief jetzt den konkreten Fehler-Snippet (z.B. <code>authorized_error (1004)</code>)</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB: Live Monitor -->
+    <section id="tab-live" class="tab-content active">
+      <div class="card">
+        <h2>Recent Runs <span class="loading" id="live-refresh-indicator"></span></h2>
+        <div id="live-running-banner" class="pareto-warning" style="display:none;background:#1a3a1a;border-color:var(--green);color:var(--green);cursor:pointer;"></div>
+        <table id="live-table">
+          <thead>
+            <tr>
+              <th></th>
+              <th>Run ID</th>
+              <th>Task</th>
+              <th>Condition</th>
+              <th>Iter</th>
+              <th>Status</th>
+              <th>Tests</th>
+              <th>Duration</th>
+              <th>Diff</th>
+              <th>Infra Err</th>
+            </tr>
+          </thead>
+          <tbody id="live-tbody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- TAB: Launch -->
+    <section id="tab-launch" class="tab-content">
+      <div class="card">
+        <h2>Start New Run</h2>
+        <div id="launch-blocking-banner" class="pareto-warning" style="display:none;"></div>
+        <div class="launch-form">
+          <div class="form-row">
+            <label>Task:</label>
+            <select id="launch-task"><option value="">Loading...</option></select>
+          </div>
+          <div id="task-preview" class="card" style="display:none;margin:12px 0;">
+            <h3>Task Preview</h3>
+            <div id="task-preview-content" style="max-height:200px;overflow:auto;white-space:pre-wrap;"></div>
+          </div>
+          <div class="form-row">
+            <label>Condition:</label>
+            <input id="launch-condition" value="baseline" placeholder="e.g. baseline, candidate_v1">
+          </div>
+          <div class="form-row">
+            <label>Conventions:</label>
+            <select id="launch-conventions"><option value="">Default (CONVENTIONS.baseline.md)</option></select>
+          </div>
+          <div class="form-row">
+            <label>Iteration:</label>
+            <input id="launch-iteration" type="number" value="1" min="0">
+          </div>
+          <div class="form-row">
+            <label>Run Index:</label>
+            <input id="launch-run-index" type="number" value="1" min="1">
+          </div>
+          <div id="launch-preview" class="card" style="display:none;">
+            <h3>Preview</h3>
+            <p id="launch-preview-text"></p>
+          </div>
+          <div class="form-row" style="margin-top:16px;">
+            <button id="launch-btn" class="launch-btn">Start Run</button>
+          </div>
+          <div id="launch-cost-estimate" class="stat-card" style="margin-top:8px;display:none;">
+            <span class="label">Avg cost per run:</span>
+            <span id="launch-avg-cost"></span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB: Iteration Comparison -->
+    <section id="tab-iteration" class="tab-content">
+      <div class="filter-bar">
+        <label>Iteration:</label>
+        <select id="iter-select"></select>
+      </div>
+      <div id="iter-verdict" class="verdict-banner" style="display:none;"></div>
+      <div id="iter-pareto-warning" class="pareto-warning" style="display:none;"></div>
+      <div class="charts-row">
+        <div class="chart-container">
+          <h3>Task Success Rate</h3>
+          <canvas id="chart-success"></canvas>
+        </div>
+        <div class="chart-container">
+          <h3>Tests Pass Rate</h3>
+          <canvas id="chart-pass-rate"></canvas>
+        </div>
+      </div>
+      <div class="charts-row">
+        <div class="chart-container">
+          <h3>Diff Size (LOC)</h3>
+          <canvas id="chart-diff-size"></canvas>
+        </div>
+        <div class="chart-container">
+          <h3>Duration (s)</h3>
+          <canvas id="chart-duration"></canvas>
+        </div>
+      </div>
+      <div class="card">
+        <h2>Statistical Comparison</h2>
+        <table id="stats-table">
+          <thead>
+            <tr>
+              <th>Metric</th>
+              <th>Baseline</th>
+              <th>Candidate</th>
+              <th>&Delta;</th>
+              <th>Test</th>
+              <th>p-value</th>
+              <th>Effect Size</th>
+            </tr>
+          </thead>
+          <tbody id="stats-tbody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- TAB: Trajectory -->
+    <section id="tab-trajectory" class="tab-content">
+      <div class="charts-row">
+        <div class="chart-container">
+          <h3>Task Success Rate over Iterations</h3>
+          <canvas id="chart-traj-success"></canvas>
+        </div>
+        <div class="chart-container">
+          <h3>Diff Size (LOC) over Iterations</h3>
+          <canvas id="chart-traj-diff"></canvas>
+        </div>
+      </div>
+      <div class="card">
+        <h2>Pareto Frontier</h2>
+        <div class="chart-container">
+          <canvas id="chart-pareto"></canvas>
+        </div>
+      </div>
+      <div class="card">
+        <h2>Iteration History</h2>
+        <table id="traj-table">
+          <thead>
+            <tr><th>Iter</th><th>Hash</th><th>Mutation</th><th>Success</th><th>Diff</th><th>Dominated</th></tr>
+          </thead>
+          <tbody id="traj-tbody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- TAB: Run Explorer -->
+    <section id="tab-runs" class="tab-content">
+      <div class="filter-bar">
+        <label>Condition:</label>
+        <select id="filter-condition"><option value="">All</option></select>
+        <label>Iteration:</label>
+        <select id="filter-iteration"><option value="">All</option></select>
+        <label>Success only:</label>
+        <input type="checkbox" id="filter-success">
+      </div>
+      <div class="card">
+        <table id="runs-table">
+          <thead>
+            <tr>
+              <th>Run ID</th><th>Task</th><th>Condition</th><th>Prompt</th><th>Iter</th>
+              <th>Success</th><th>Tests</th><th>Duration</th><th>Diff</th><th>Judge</th>
+            </tr>
+          </thead>
+          <tbody id="runs-tbody"></tbody>
+        </table>
+      </div>
+      <div id="run-detail" class="card" style="display:none;">
+        <h2 id="run-detail-title"></h2>
+        <div id="run-detail-content"></div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Monitor overlay (shown when viewing a running or completed run) -->
+  <div id="monitor-overlay" style="display:none;">
+    <div class="monitor-header">
+      <h2 id="monitor-title">Run Monitor</h2>
+      <div id="monitor-status" class="badge badge-dim">starting</div>
+      <div id="monitor-timer">0s</div>
+      <button id="monitor-abort-btn" class="abort-btn" style="display:none;">Abort</button>
+      <button id="monitor-close-btn" class="close-btn">Close</button>
+    </div>
+    <div class="monitor-grid">
+      <div class="monitor-quadrant" id="mq-task">
+        <h3>Task</h3>
+        <div id="mq-task-content" style="overflow:auto;max-height:100%;"></div>
+      </div>
+      <div class="monitor-quadrant" id="mq-conventions">
+        <h3>Conventions</h3>
+        <div id="mq-conventions-content" style="overflow:auto;max-height:100%;white-space:pre-wrap;font-size:11px;"></div>
+      </div>
+      <div class="monitor-quadrant" id="mq-output">
+        <h3>Agent Output</h3>
+        <div id="mq-output-content" class="log-viewer" style="max-height:100%;"></div>
+      </div>
+      <div class="monitor-quadrant" id="mq-patch">
+        <h3>Patch</h3>
+        <div id="mq-patch-content" class="patch-viewer" style="max-height:100%;"></div>
+      </div>
+    </div>
+    <div id="monitor-events" class="card" style="margin-top:8px;">
+      <h3>Event Log</h3>
+      <div id="monitor-events-content" style="max-height:150px;overflow:auto;font-size:11px;font-family:monospace;"></div>
+    </div>
+  </div>
+
+  <!-- Debrief overlay -->
+  <div id="debrief-overlay" style="display:none;">
+    <div id="debrief-verdict" class="verdict-banner"></div>
+    <div id="debrief-error-detail" class="error-detail-block" style="display:none;"></div>
+    <div class="stats-grid" id="debrief-stats"></div>
+    <div class="card">
+      <h3>Task / Problem Statement</h3>
+      <div id="debrief-task-meta" style="margin-bottom:8px;"></div>
+      <div id="debrief-task-content" style="max-height:300px;overflow:auto;white-space:pre-wrap;font-size:12px;font-family:monospace;background:var(--bg);padding:8px;border-radius:4px;"></div>
+    </div>
+    <div class="card">
+      <h3>Input Prompt / Conventions</h3>
+      <div id="debrief-conventions-meta" style="margin-bottom:8px;"></div>
+      <div id="debrief-conventions-content" style="max-height:400px;overflow:auto;white-space:pre-wrap;font-size:12px;font-family:monospace;background:var(--bg);padding:8px;border-radius:4px;"></div>
+    </div>
+    <div class="card">
+      <h3>Patch</h3>
+      <div id="debrief-patch" class="patch-viewer"></div>
+    </div>
+    <div class="card">
+      <h3>Tests</h3>
+      <div id="debrief-tests" class="log-viewer"></div>
+    </div>
+    <div class="card">
+      <h3>Agent Output</h3>
+      <div id="debrief-log" class="log-viewer" style="max-height:300px;"></div>
+    </div>
+    <div class="card" style="margin-top:12px;">
+      <h3>Actions</h3>
+      <div style="display:flex;gap:8px;">
+        <button id="debrief-repeat" class="launch-btn">Repeat Run</button>
+        <button id="debrief-dismiss" class="close-btn">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/static/charts.js"></script>
+  <script src="/static/app.js"></script>
+</body>
+</html>

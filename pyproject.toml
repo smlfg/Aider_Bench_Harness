@@ -1,0 +1,39 @@
+[project]
+name = "first-real-harness-evaluation-karpathies-md"
+version = "0.1.0"
+description = "Disposable Aider + SWE-bench Lite harness for markdown instruction experiments."
+requires-python = ">=3.12,<3.13"
+dependencies = [
+  "aider-chat>=0.86.2",
+  "datasets>=2.19",
+  "fastapi>=0.115",
+  "pydantic>=2.7",
+  "python-dotenv>=1.0",
+  "pyyaml>=6.0",
+  "rich>=13.7",
+  "scipy>=1.14",
+  "sse-starlette>=2",
+  "swebench>=3.0.14",
+  "uvicorn>=0.34",
+]
+
+[project.scripts]
+harness-preflight = "runner.preflight:main"
+harness-fetch-candidates = "runner.swebench_data:main"
+harness-run-once = "runner.run_once:main"
+harness-calibrate = "runner.calibrate:main"
+harness-run-matrix = "runner.run_matrix:main"
+harness-judge = "runner.judge:main"
+harness-summarize = "runner.summarize:main"
+harness-analyze = "runner.analyze:main"
+harness-serve = "web.server:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.uv]
+environments = ["sys_platform != 'win32'"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["runner"]

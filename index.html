@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Aider Bench Harness</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: #0f172a;
+      color: #e2e8f0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+    }
+    h1 { font-size: 1.5rem; margin-bottom: 0.5rem; color: #f8fafc; }
+    p { color: #64748b; margin-bottom: 2rem; font-size: 0.9rem; }
+    .links { display: flex; flex-direction: column; gap: 0.75rem; width: 100%; max-width: 500px; }
+    a {
+      display: block;
+      padding: 1rem 1.5rem;
+      background: rgba(30,41,59,0.8);
+      border: 1px solid #334155;
+      border-radius: 8px;
+      color: #e2e8f0;
+      text-decoration: none;
+      font-size: 0.95rem;
+      transition: border-color 0.2s, background 0.2s;
+    }
+    a:hover { border-color: #22d3ee; background: rgba(30,41,59,1); }
+    .tag {
+      display: inline-block;
+      font-size: 0.7rem;
+      padding: 0.15rem 0.5rem;
+      border-radius: 4px;
+      margin-left: 0.5rem;
+      vertical-align: middle;
+    }
+    .tag.cyan { background: rgba(34,211,238,0.15); color: #22d3ee; }
+    .tag.amber { background: rgba(251,191,36,0.15); color: #fbbf24; }
+    .tag.violet { background: rgba(167,139,250,0.15); color: #a78bfa; }
+  </style>
+</head>
+<body>
+  <h1>Aider Bench Harness</h1>
+  <p>github.com/smlfg/Aider_Bench_Harness</p>
+  <div class="links">
+    <a href="harness_architecture.html">
+      Architecture — Full code flow diagram
+      <span class="tag cyan">overview</span>
+    </a>
+    <a href="harness_logic_flow.html">
+      Logic Flow — Task + .md + Judge
+      <span class="tag amber">logic</span>
+    </a>
+    <a href="harness_parallel_experiment.html">
+      Parallel Experiment — Up to 100 Runs
+      <span class="tag violet">matrix</span>
+    </a>
+  </div>
+</body>
+</html>

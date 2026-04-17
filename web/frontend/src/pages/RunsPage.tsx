@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { fetchRuns, Run } from '../lib/api';
+import { fetchRuns } from '../lib/api';
+import type { Run } from '../lib/api';
 import { Link } from 'react-router-dom';
 import { CheckCircle2, XCircle, AlertCircle, ExternalLink } from 'lucide-react';
 

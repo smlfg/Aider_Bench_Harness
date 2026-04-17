@@ -14,43 +14,43 @@
       padding: 2rem;
       color: white;
     }
-    .container { max-width: 1800px; margin: 0 auto; }
-    .header { margin-bottom: 2rem; }
-    .header-row { display: flex; align-items: center; gap: 1rem; margin-bottom: 0.5rem; }
+    .container { max-width: 2000px; margin: 0 auto; }
+    .header { margin-bottom: 2.5rem; }
+    .header-row { display: flex; align-items: center; gap: 1rem; margin-bottom: 0.75rem; }
     .pulse-dot {
-      width: 14px; height: 14px;
+      width: 16px; height: 16px;
       background: #22d3ee;
       border-radius: 50%;
       animation: pulse 2s infinite;
     }
     @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
-    h1 { font-size: 1.75rem; font-weight: 700; letter-spacing: -0.025em; }
-    .subtitle { color: #94a3b8; font-size: 1rem; margin-left: 2rem; }
+    h1 { font-size: 2rem; font-weight: 700; letter-spacing: -0.025em; }
+    .subtitle { color: #94a3b8; font-size: 1.125rem; margin-left: 2.25rem; }
     .diagram-container {
       background: rgba(15, 23, 42, 0.5);
       border-radius: 1rem;
       border: 1px solid #1e293b;
-      padding: 2rem;
+      padding: 2.5rem;
       overflow-x: auto;
     }
-    svg { width: 100%; min-width: 1400px; display: block; }
-    .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 1rem; margin-top: 2rem; }
+    svg { width: 100%; min-width: 1600px; display: block; }
+    .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(380px, 1fr)); gap: 1.25rem; margin-top: 2.5rem; }
     .card {
       background: rgba(15, 23, 42, 0.5);
       border-radius: 0.75rem;
       border: 1px solid #1e293b;
-      padding: 1.5rem;
+      padding: 1.75rem;
     }
-    .card-header { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem; }
-    .card-dot { width: 10px; height: 10px; border-radius: 50%; }
+    .card-header { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem; }
+    .card-dot { width: 12px; height: 12px; border-radius: 50%; }
     .card-dot.cyan { background: #22d3ee; }
     .card-dot.amber { background: #fbbf24; }
     .card-dot.violet { background: #a78bfa; }
     .card-dot.emerald { background: #34d399; }
-    .card h3 { font-size: 1rem; font-weight: 600; }
-    .card ul { list-style: none; color: #94a3b8; font-size: 0.875rem; }
-    .card li { margin-bottom: 0.5rem; }
-    .footer { text-align: center; margin-top: 1.5rem; color: #475569; font-size: 0.875rem; }
+    .card h3 { font-size: 1.1rem; font-weight: 600; }
+    .card ul { list-style: none; color: #94a3b8; font-size: 0.95rem; }
+    .card li { margin-bottom: 0.6rem; }
+    .footer { text-align: center; margin-top: 2rem; color: #475569; font-size: 1rem; }
   </style>
 </head>
 <body>
@@ -60,23 +60,23 @@
         <div class="pulse-dot"></div>
         <h1>Parallel Experiment — Up to 100 Runs</h1>
       </div>
-      <p class="subtitle">Tasks × Conditions × Runs → All Pipeline Instances in Parallel → Aggregated Results</p>
+      <p class="subtitle">Tasks × Conditions × Runs → Parallel Pipeline Instances → Aggregated Results</p>
     </div>
 
     <div class="diagram-container">
-      <svg viewBox="0 0 2200 1600">
+      <svg viewBox="0 0 3200 2200">
         <defs>
-          <marker id="arr" markerWidth="18" markerHeight="12" refX="16" refY="6" orient="auto">
-            <polygon points="0 0, 18 6, 0 12" fill="#64748b" />
+          <marker id="arr" markerWidth="24" markerHeight="16" refX="22" refY="8" orient="auto">
+            <polygon points="0 0, 24 8, 0 16" fill="#64748b" />
           </marker>
-          <marker id="arr-a" markerWidth="18" markerHeight="12" refX="16" refY="6" orient="auto">
-            <polygon points="0 0, 18 6, 0 12" fill="#fbbf24" />
+          <marker id="arr-a" markerWidth="24" markerHeight="16" refX="22" refY="8" orient="auto">
+            <polygon points="0 0, 24 8, 0 16" fill="#fbbf24" />
           </marker>
-          <marker id="arr-e" markerWidth="18" markerHeight="12" refX="16" refY="6" orient="auto">
-            <polygon points="0 0, 18 6, 0 12" fill="#34d399" />
+          <marker id="arr-e" markerWidth="24" markerHeight="16" refX="22" refY="8" orient="auto">
+            <polygon points="0 0, 24 8, 0 16" fill="#34d399" />
           </marker>
-          <marker id="arr-c" markerWidth="18" markerHeight="12" refX="16" refY="6" orient="auto">
-            <polygon points="0 0, 18 6, 0 12" fill="#22d3ee" />
+          <marker id="arr-c" markerWidth="24" markerHeight="16" refX="22" refY="8" orient="auto">
+            <polygon points="0 0, 24 8, 0 16" fill="#22d3ee" />
           </marker>
           <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
             <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#1e293b" stroke-width="0.5"/>
@@ -90,280 +90,326 @@
              ============================================================ -->
 
         <!-- Experiment Config -->
-        <rect x="30" y="30" width="320" height="200" rx="16"
-              fill="rgba(251, 191, 36, 0.08)" stroke="#fbbf24" stroke-width="2.5"/>
-        <text x="190" y="66" fill="#fbbf24" font-size="16" font-weight="600" text-anchor="middle">Experiment Config</text>
-        <line x1="30" y1="82" x2="350" y2="82" stroke="#fbbf24" stroke-width="1" opacity="0.4"/>
-        <text x="48" y="112" fill="#94a3b8" font-size="13">experiment_config.json</text>
-        <text x="48" y="140" fill="#94a3b8" font-size="12">tasks file</text>
-        <text x="48" y="162" fill="#94a3b8" font-size="12">conditions (baseline + candidates)</text>
-        <text x="48" y="184" fill="#94a3b8" font-size="12">runs_per_condition_per_task</text>
+        <rect x="40" y="40" width="460" height="280" rx="20"
+              fill="rgba(251, 191, 36, 0.08)" stroke="#fbbf24" stroke-width="3"/>
+        <text x="270" y="90" fill="#fbbf24" font-size="22" font-weight="600" text-anchor="middle">Experiment Config</text>
+        <line x1="40" y1="112" x2="500" y2="112" stroke="#fbbf24" stroke-width="1.5" opacity="0.4"/>
+
+        <text x="70" y="152" fill="#94a3b8" font-size="16">experiment_config.json</text>
+
+        <text x="70" y="195" fill="white" font-size="16" font-weight="600">tasks file</text>
+        <text x="90" y="225" fill="#94a3b8" font-size="14">(selected_tasks.json)</text>
+
+        <text x="70" y="268" fill="white" font-size="16" font-weight="600">conditions</text>
+        <text x="90" y="298" fill="#94a3b8" font-size="14">(baseline + candidates)</text>
+
+        <text x="70" y="341" fill="white" font-size="16" font-weight="600">runs_per_condition_per_task</text>
+        <text x="90" y="371" fill="#94a3b8" font-size="14">(e.g. 5 runs each)</text>
 
         <!-- Selected Tasks -->
-        <rect x="380" y="30" width="320" height="200" rx="16"
-              fill="rgba(8, 51, 68, 0.5)" stroke="#22d3ee" stroke-width="2.5"/>
-        <text x="540" y="66" fill="#22d3ee" font-size="16" font-weight="600" text-anchor="middle">Selected Tasks</text>
-        <line x1="380" y1="82" x2="700" y2="82" stroke="#22d3ee" stroke-width="1" opacity="0.4"/>
-        <text x="398" y="112" fill="#94a3b8" font-size="13">selected_tasks.json</text>
-        <text x="398" y="140" fill="#94a3b8" font-size="12">django__django-10924</text>
-        <text x="398" y="162" fill="#94a3b8" font-size="12">astropy__astropy-14182</text>
-        <text x="398" y="184" fill="#94a3b8" font-size="12">sympy__sympy-23117</text>
-        <text x="398" y="206" fill="#94a3b8" font-size="12">... (N tasks)</text>
+        <rect x="540" y="40" width="460" height="280" rx="20"
+              fill="rgba(8, 51, 68, 0.5)" stroke="#22d3ee" stroke-width="3"/>
+        <text x="770" y="90" fill="#22d3ee" font-size="22" font-weight="600" text-anchor="middle">Selected Tasks</text>
+        <line x1="540" y1="112" x2="1000" y2="112" stroke="#22d3ee" stroke-width="1.5" opacity="0.4"/>
+
+        <text x="570" y="152" fill="#94a3b8" font-size="16">selected_tasks.json</text>
+
+        <text x="570" y="195" fill="white" font-size="16" font-weight="600">Example tasks:</text>
+        <text x="590" y="228" fill="#94a3b8" font-size="15">django__django-10924</text>
+        <text x="590" y="260" fill="#94a3b8" font-size="15">astropy__astropy-14182</text>
+        <text x="590" y="292" fill="#94a3b8" font-size="15">sympy__sympy-23117</text>
+        <text x="590" y="330" fill="#fb923c" font-size="15">N tasks total</text>
 
         <!-- Conventions Files -->
-        <rect x="730" y="30" width="320" height="200" rx="16"
-              fill="rgba(251, 191, 36, 0.08)" stroke="#fbbf24" stroke-width="2.5" stroke-dasharray="8,5"/>
-        <text x="890" y="66" fill="#fbbf24" font-size="16" font-weight="600" text-anchor="middle">Conventions Files</text>
-        <line x1="730" y1="82" x2="1050" y2="82" stroke="#fbbf24" stroke-width="1" opacity="0.4"/>
-        <text x="748" y="112" fill="#94a3b8" font-size="13">harness/CONVENTIONS.*.md</text>
-        <text x="748" y="140" fill="#94a3b8" font-size="12">CONVENTIONS.B.md (baseline)</text>
-        <text x="748" y="162" fill="#94a3b8" font-size="12">CONVENTIONS.R01.md (candidate)</text>
-        <text x="748" y="184" fill="#94a3b8" font-size="12">CONVENTIONS.R02.md</text>
-        <text x="748" y="206" fill="#94a3b8" font-size="12">CONVENTIONS.R03.md ...</text>
+        <rect x="1040" y="40" width="460" height="280" rx="20"
+              fill="rgba(251, 191, 36, 0.08)" stroke="#fbbf24" stroke-width="3" stroke-dasharray="12,7"/>
+        <text x="1270" y="90" fill="#fbbf24" font-size="22" font-weight="600" text-anchor="middle">Conventions Files</text>
+        <line x1="1040" y1="112" x2="1500" y2="112" stroke="#fbbf24" stroke-width="1.5" opacity="0.4"/>
 
-        <!-- Arrow: Config -> Runner -->
-        <line x1="700" y1="130" x2="760" y2="130"
-              stroke="#94a3b8" stroke-width="3" marker-end="url(#arr)"/>
-        <text x="730" y="118" fill="#94a3b8" font-size="12">iteration, model, flags</text>
+        <text x="1070" y="152" fill="#94a3b8" font-size="16">harness/CONVENTIONS.*.md</text>
 
-        <!-- Arrow: Tasks -> Runner -->
-        <line x1="700" y1="130" x2="760" y2="130"
-              stroke="#22d3ee" stroke-width="3" marker-end="url(#arr-c)"/>
+        <text x="1070" y="195" fill="white" font-size="16" font-weight="600">Baseline:</text>
+        <text x="1090" y="225" fill="#94a3b8" font-size="15">CONVENTIONS.B.md</text>
+
+        <text x="1070" y="268" fill="white" font-size="16" font-weight="600">Candidates:</text>
+        <text x="1090" y="298" fill="#94a3b8" font-size="15">CONVENTIONS.R01.md</text>
+        <text x="1090" y="330" fill="#94a3b8" font-size="15">CONVENTIONS.R02.md ...</text>
+
+        <!-- Arrows: Config + Tasks -> Runner -->
+        <line x1="500" y1="180" x2="580" y2="180"
+              stroke="#94a3b8" stroke-width="4" marker-end="url(#arr)"/>
+        <line x1="1000" y1="180" x2="580" y2="180"
+              stroke="#22d3ee" stroke-width="4" marker-end="url(#arr-c)"/>
+        <text x="750" y="162" fill="#94a3b8" font-size="15">iteration, model, flags</text>
 
         <!-- ============================================================
              ROW 1: RUNNER / DISPATCHER
              ============================================================ -->
 
         <!-- Runner / Dispatcher -->
-        <rect x="780" y="50" width="500" height="180" rx="16"
+        <rect x="580" y="80" width="700" height="260" rx="20"
               fill="rgba(120, 53, 15, 0.4)" stroke="#fbbf24" stroke-width="3"/>
-        <text x="1030" y="86" fill="white" font-size="18" font-weight="600" text-anchor="middle">Experiment Runner</text>
-        <line x1="780" y1="102" x2="1280" y2="102" stroke="#fbbf24" stroke-width="1" opacity="0.4"/>
-        <text x="800" y="128" fill="#94a3b8" font-size="13">run_matrix.py / experiment_runner.py</text>
-        <text x="800" y="155" fill="#94a3b8" font-size="12">For each task:</text>
-        <text x="816" y="178" fill="#94a3b8" font-size="12">For each condition:</text>
-        <text x="832" y="201" fill="#94a3b8" font-size="12">For each run (1 to runs_per_task):</text>
-        <text x="800" y="228" fill="#fbbf24" font-size="13">spawns run_once.py instance</text>
+        <text x="930" y="130" fill="white" font-size="22" font-weight="600" text-anchor="middle">Experiment Runner</text>
+        <line x1="580" y1="152" x2="1280" y2="152" stroke="#fbbf24" stroke-width="1.5" opacity="0.4"/>
+        <text x="610" y="190" fill="#94a3b8" font-size="16">run_matrix.py / experiment_runner.py</text>
+
+        <text x="610" y="235" fill="white" font-size="17" font-weight="600">Nested loops:</text>
+        <text x="630" y="272" fill="#94a3b8" font-size="16">For each task</text>
+        <text x="650" y="309" fill="#94a3b8" font-size="16">For each condition</text>
+        <text x="670" y="346" fill="#94a3b8" font-size="16">For each run (1 to runs_per_task)</text>
 
         <!-- Arrow: Runner -> Grid -->
-        <line x1="1030" y1="230" x2="1030" y2="280"
-              stroke="#fbbf24" stroke-width="4" marker-end="url(#arr-a)"/>
-        <text x="1052" y="258" fill="#fbbf24" font-size="13">up to 100 parallel</text>
+        <line x1="930" y1="340" x2="930" y2="420"
+              stroke="#fbbf24" stroke-width="6" marker-end="url(#arr-a)"/>
+        <text x="960" y="385" fill="#fbbf24" font-size="16">spawns parallel</text>
+        <text x="960" y="415" fill="#fbbf24" font-size="16">up to 100 instances</text>
 
         <!-- ============================================================
-             ROW 2: PARALLEL PIPELINE INSTANCES
+             ROW 2: PARALLEL PIPELINE INSTANCES GRID
              ============================================================ -->
 
-        <!-- Pipeline Instances Grid (3x3 shown, labelled as "up to 100") -->
         <!-- Full outer boundary -->
-        <rect x="30" y="290" width="1860" height="800" rx="20"
-              fill="rgba(120, 53, 15, 0.05)" stroke="#fb923c" stroke-width="2" stroke-dasharray="10,6"/>
-        <text x="50" y="322" fill="#fb923c" font-size="16" font-weight="600">Parallel Pipeline Instances (up to 100)</text>
+        <rect x="40" y="440" x="40" y="440" width="2800" height="900" rx="24"
+              fill="rgba(120, 53, 15, 0.05)" stroke="#fb923c" stroke-width="2.5" stroke-dasharray="12,7"/>
+        <text x="60" y="490" fill="#fb923c" font-size="22" font-weight="600">Parallel Pipeline Instances (up to 100)</text>
 
-        <!-- ===== INSTANCE COLUMN 1: baseline ===== -->
-        <!-- Task label -->
-        <text x="120" y="358" fill="#94a3b8" font-size="13" text-anchor="middle">django__django-10924</text>
+        <!-- === COLUMN: django baseline === -->
+        <rect x="60" y="520" width="420" height="800" rx="16"
+              fill="rgba(120, 53, 15, 0.08)" stroke="#fb923c" stroke-width="1.5" stroke-dasharray="6,4"/>
 
-        <!-- Condition sub-label -->
-        <text x="120" y="380" fill="#fbbf24" font-size="11" text-anchor="middle">baseline</text>
+        <text x="270" y="555" fill="white" font-size="17" font-weight="600" text-anchor="middle">django__django-10924</text>
+
+        <!-- Baseline label -->
+        <rect x="120" y="580" width="160" height="50" rx="10"
+              fill="rgba(120, 53, 15, 0.4)" stroke="#fbbf24" stroke-width="2"/>
+        <text x="200" y="612" fill="#fbbf24" font-size="16" font-weight="600" text-anchor="middle">baseline</text>
 
         <!-- Run pills -->
-        <rect x="50" y="394" width="60" height="36" rx="6" fill="rgba(120, 53, 15, 0.4)" stroke="#fbbf24" stroke-width="1.5"/>
-        <text x="80" y="417" fill="white" font-size="11" font-weight="600" text-anchor="middle">run 1</text>
+        <rect x="80" y="650" width="160" height="60" rx="10"
+              fill="rgba(120, 53, 15, 0.4)" stroke="#fbbf24" stroke-width="2"/>
+        <text x="160" y="685" fill="white" font-size="15" font-weight="600" text-anchor="middle">run 1</text>
 
-        <rect x="120" y="394" width="60" height="36" rx="6" fill="rgba(120, 53, 15, 0.4)" stroke="#fbbf24" stroke-width="1.5"/>
-        <text x="150" y="417" fill="white" font-size="11" font-weight="600" text-anchor="middle">run 2</text>
+        <rect x="260" y="650" width="160" height="60" rx="10"
+              fill="rgba(120, 53, 15, 0.4)" stroke="#fbbf24" stroke-width="2"/>
+        <text x="340" y="685" fill="white" font-size="15" font-weight="600" text-anchor="middle">run 2</text>
 
-        <rect x="50" y="440" width="60" height="36" rx="6" fill="rgba(120, 53, 15, 0.4)" stroke="#fbbf24" stroke-width="1.5"/>
-        <text x="80" y="463" fill="white" font-size="11" font-weight="600" text-anchor="middle">run 3</text>
+        <rect x="80" y="730" width="160" height="60" rx="10"
+              fill="rgba(120, 53, 15, 0.4)" stroke="#fbbf24" stroke-width="2"/>
+        <text x="160" y="765" fill="white" font-size="15" font-weight="600" text-anchor="middle">run 3</text>
 
-        <rect x="120" y="440" width="60" height="36" rx="6" fill="rgba(120, 53, 15, 0.4)" stroke="#fbbf24" stroke-width="1.5"/>
-        <text x="150" y="463" fill="white" font-size="11" font-weight="600" text-anchor="middle">run 4</text>
+        <rect x="260" y="730" width="160" height="60" rx="10"
+              fill="rgba(120, 53, 15, 0.4)" stroke="#fbbf24" stroke-width="2"/>
+        <text x="340" y="765" fill="white" font-size="15" font-weight="600" text-anchor="middle">run 4</text>
 
-        <!-- ellipsis -->
-        <text x="140" y="502" fill="#fb923c" font-size="14" text-anchor="middle">...</text>
+        <rect x="80" y="810" width="160" height="60" rx="10"
+              fill="rgba(120, 53, 15, 0.4)" stroke="#fbbf24" stroke-width="2"/>
+        <text x="160" y="845" fill="white" font-size="15" font-weight="600" text-anchor="middle">run 5</text>
 
-        <!-- ===== INSTANCE COLUMN 2: candidate ===== -->
-        <text x="340" y="358" fill="#94a3b8" font-size="13" text-anchor="middle">django__django-10924</text>
-        <text x="340" y="380" fill="#a78bfa" font-size="11" text-anchor="middle">candidate_v1</text>
+        <text x="270" y="900" fill="#fb923c" font-size="16" text-anchor="middle">...</text>
 
-        <rect x="270" y="394" width="60" height="36" rx="6" fill="rgba(76, 29, 149, 0.4)" stroke="#a78bfa" stroke-width="1.5"/>
-        <text x="300" y="417" fill="white" font-size="11" font-weight="600" text-anchor="middle">run 1</text>
+        <!-- Mini pipeline inside run pill -->
+        <rect x="80" y="890" width="340" height="120" rx="10"
+              fill="rgba(30, 41, 59, 0.6)" stroke="#334155" stroke-width="1.5"/>
+        <text x="250" y="918" fill="#94a3b8" font-size="13" text-anchor="middle">Each run = full pipeline</text>
+        <text x="110" y="948" fill="#64748b" font-size="12">Task → Agent</text>
+        <text x="110" y="972" fill="#64748b" font-size="12">→ Patch</text>
+        <text x="110" y="996" fill="#64748b" font-size="12">→ Judge</text>
+        <text x="250" y="948" fill="#64748b" font-size="12">→ Verdict</text>
+        <text x="250" y="972" fill="#64748b" font-size="12">→ run_meta</text>
 
-        <rect x="340" y="394" width="60" height="36" rx="6" fill="rgba(76, 29, 149, 0.4)" stroke="#a78bfa" stroke-width="1.5"/>
-        <text x="370" y="417" fill="white" font-size="11" font-weight="600" text-anchor="middle">run 2</text>
+        <!-- === COLUMN: django candidate === -->
+        <rect x="510" y="520" width="420" height="800" rx="16"
+              fill="rgba(76, 29, 149, 0.08)" stroke="#a78bfa" stroke-width="1.5" stroke-dasharray="6,4"/>
 
-        <rect x="270" y="440" width="60" height="36" rx="6" fill="rgba(76, 29, 149, 0.4)" stroke="#a78bfa" stroke-width="1.5"/>
-        <text x="300" y="463" fill="white" font-size="11" font-weight="600" text-anchor="middle">run 3</text>
+        <text x="720" y="555" fill="white" font-size="17" font-weight="600" text-anchor="middle">django__django-10924</text>
 
-        <rect x="340" y="440" width="60" height="36" rx="6" fill="rgba(76, 29, 149, 0.4)" stroke="#a78bfa" stroke-width="1.5"/>
-        <text x="370" y="463" fill="white" font-size="11" font-weight="600" text-anchor="middle">run 4</text>
+        <!-- Candidate label -->
+        <rect x="570" y="580" width="200" height="50" rx="10"
+              fill="rgba(76, 29, 149, 0.4)" stroke="#a78bfa" stroke-width="2"/>
+        <text x="670" y="612" fill="#a78bfa" font-size="16" font-weight="600" text-anchor="middle">candidate_v1</text>
 
-        <text x="360" y="502" fill="#fb923c" font-size="14" text-anchor="middle">...</text>
+        <rect x="530" y="650" width="160" height="60" rx="10"
+              fill="rgba(76, 29, 149, 0.4)" stroke="#a78bfa" stroke-width="2"/>
+        <text x="610" y="685" fill="white" font-size="15" font-weight="600" text-anchor="middle">run 1</text>
 
-        <!-- ===== INSTANCE COLUMN 3: another task ===== -->
-        <text x="560" y="358" fill="#94a3b8" font-size="13" text-anchor="middle">astropy__astropy-14182</text>
-        <text x="560" y="380" fill="#fbbf24" font-size="11" text-anchor="middle">baseline</text>
+        <rect x="710" y="650" width="160" height="60" rx="10"
+              fill="rgba(76, 29, 149, 0.4)" stroke="#a78bfa" stroke-width="2"/>
+        <text x="790" y="685" fill="white" font-size="15" font-weight="600" text-anchor="middle">run 2</text>
 
-        <rect x="490" y="394" width="60" height="36" rx="6" fill="rgba(120, 53, 15, 0.4)" stroke="#fbbf24" stroke-width="1.5"/>
-        <text x="520" y="417" fill="white" font-size="11" font-weight="600" text-anchor="middle">run 1</text>
+        <rect x="530" y="730" width="160" height="60" rx="10"
+              fill="rgba(76, 29, 149, 0.4)" stroke="#a78bfa" stroke-width="2"/>
+        <text x="610" y="765" fill="white" font-size="15" font-weight="600" text-anchor="middle">run 3</text>
 
-        <rect x="560" y="394" width="60" height="36" rx="6" fill="rgba(120, 53, 15, 0.4)" stroke="#fbbf24" stroke-width="1.5"/>
-        <text x="590" y="417" fill="white" font-size="11" font-weight="600" text-anchor="middle">run 2</text>
+        <rect x="710" y="730" width="160" height="60" rx="10"
+              fill="rgba(76, 29, 149, 0.4)" stroke="#a78bfa" stroke-width="2"/>
+        <text x="790" y="765" fill="white" font-size="15" font-weight="600" text-anchor="middle">run 4</text>
 
-        <rect x="490" y="440" width="60" height="36" rx="6" fill="rgba(120, 53, 15, 0.4)" stroke="#fbbf24" stroke-width="1.5"/>
-        <text x="520" y="463" fill="white" font-size="11" font-weight="600" text-anchor="middle">run 3</text>
+        <rect x="530" y="810" width="160" height="60" rx="10"
+              fill="rgba(76, 29, 149, 0.4)" stroke="#a78bfa" stroke-width="2"/>
+        <text x="610" y="845" fill="white" font-size="15" font-weight="600" text-anchor="middle">run 5</text>
 
-        <rect x="560" y="440" width="60" height="36" rx="6" fill="rgba(120, 53, 15, 0.4)" stroke="#fbbf24" stroke-width="1.5"/>
-        <text x="590" y="463" fill="white" font-size="11" font-weight="600" text-anchor="middle">run 4</text>
+        <text x="720" y="900" fill="#fb923c" font-size="16" text-anchor="middle">...</text>
 
-        <text x="580" y="502" fill="#fb923c" font-size="14" text-anchor="middle">...</text>
+        <!-- === COLUMN: astropy === -->
+        <rect x="960" y="520" width="420" height="800" rx="16"
+              fill="rgba(120, 53, 15, 0.05)" stroke="#fb923c" stroke-width="1.5" stroke-dasharray="6,4"/>
 
-        <!-- ===== MORE TASKS (faded) ===== -->
+        <text x="1170" y="555" fill="white" font-size="17" font-weight="600" text-anchor="middle">astropy__astropy-14182</text>
+
+        <rect x="1020" y="580" width="160" height="50" rx="10"
+              fill="rgba(120, 53, 15, 0.4)" stroke="#fbbf24" stroke-width="2"/>
+        <text x="1100" y="612" fill="#fbbf24" font-size="16" font-weight="600" text-anchor="middle">baseline</text>
+
+        <rect x="980" y="650" width="160" height="60" rx="10"
+              fill="rgba(120, 53, 15, 0.4)" stroke="#fbbf24" stroke-width="2"/>
+        <text x="1060" y="685" fill="white" font-size="15" font-weight="600" text-anchor="middle">run 1</text>
+
+        <rect x="1160" y="650" width="160" height="60" rx="10"
+              fill="rgba(120, 53, 15, 0.4)" stroke="#fbbf24" stroke-width="2"/>
+        <text x="1240" y="685" fill="white" font-size="15" font-weight="600" text-anchor="middle">run 2</text>
+
+        <rect x="980" y="730" width="160" height="60" rx="10"
+              fill="rgba(120, 53, 15, 0.4)" stroke="#fbbf24" stroke-width="2"/>
+        <text x="1060" y="765" fill="white" font-size="15" font-weight="600" text-anchor="middle">run 3</text>
+
+        <rect x="1160" y="730" width="160" height="60" rx="10"
+              fill="rgba(120, 53, 15, 0.4)" stroke="#fbbf24" stroke-width="2"/>
+        <text x="1240" y="765" fill="white" font-size="15" font-weight="600" text-anchor="middle">run 4</text>
+
+        <rect x="980" y="810" width="160" height="60" rx="10"
+              fill="rgba(120, 53, 15, 0.4)" stroke="#fbbf24" stroke-width="2"/>
+        <text x="1060" y="845" fill="white" font-size="15" font-weight="600" text-anchor="middle">run 5</text>
+
+        <text x="1170" y="900" fill="#fb923c" font-size="16" text-anchor="middle">...</text>
+
+        <!-- === MORE TASKS (faded right side) === -->
         <!-- Vertical divider -->
-        <line x1="680" y1="330" x2="680" y2="1080" stroke="#1e293b" stroke-width="1" stroke-dasharray="4,4"/>
+        <line x1="1440" y1="510" x2="1440" y2="1350" stroke="#1e293b" stroke-width="2" stroke-dasharray="6,4"/>
 
-        <text x="880" y="380" fill="#475569" font-size="13" text-anchor="middle">astropy__astropy-14182</text>
-        <text x="880" y="402" fill="#475569" font-size="11" text-anchor="middle">candidate_v1</text>
-        <text x="880" y="424" fill="#475569" font-size="13" text-anchor="middle">sympy__sympy-23117</text>
-        <text x="880" y="446" fill="#475569" font-size="11" text-anchor="middle">baseline</text>
-        <text x="880" y="468" fill="#475569" font-size="13" text-anchor="middle">sympy__sympy-23117</text>
-        <text x="880" y="490" fill="#475569" font-size="11" text-anchor="middle">candidate_v1</text>
+        <text x="1700" y="580" fill="#475569" font-size="20" text-anchor="middle">More tasks ...</text>
+        <text x="1700" y="630" fill="#475569" font-size="17" text-anchor="middle">astropy__astropy-12907</text>
+        <text x="1700" y="662" fill="#475569" font-size="15" text-anchor="middle">sympy__sympy-23117</text>
+        <text x="1700" y="694" fill="#475569" font-size="15" text-anchor="middle">astropy__astropy-14365</text>
+        <text x="1700" y="740" fill="#475569" font-size="17" text-anchor="middle">Each with multiple</text>
+        <text x="1700" y="775" fill="#475569" font-size="17" text-anchor="middle">conditions</text>
+        <text x="1700" y="810" fill="#475569" font-size="17" text-anchor="middle">and multiple runs</text>
 
-        <text x="1020" y="420" fill="#475569" font-size="14" text-anchor="middle">... and N more tasks ...</text>
-        <text x="1020" y="448" fill="#475569" font-size="12" text-anchor="middle">(each with multiple conditions</text>
-        <text x="1020" y="468" fill="#475569" font-size="12" text-anchor="middle">and multiple runs)</text>
-
-        <!-- ===== PIPELINE INSIDE EACH RUN PILL (zoomed mini view) ===== -->
-        <!-- Inside baseline run 1 pill -->
-        <rect x="50" y="490" width="130" height="90" rx="8"
-              fill="rgba(30, 41, 59, 0.6)" stroke="#334155" stroke-width="1"/>
-        <text x="115" y="508" fill="#94a3b8" font-size="8" text-anchor="middle">TASK</text>
-        <text x="70" y="522" fill="#64748b" font-size="7" text-anchor="middle">→ Agent</text>
-        <text x="70" y="534" fill="#64748b" font-size="7" text-anchor="middle">→ Patch</text>
-        <text x="70" y="546" fill="#64748b" font-size="7" text-anchor="middle">→ Eval</text>
-        <text x="70" y="558" fill="#64748b" font-size="7" text-anchor="middle">→ Judge</text>
-        <text x="70" y="570" fill="#64748b" font-size="7" text-anchor="middle">→ Verdict</text>
-
-        <!-- Inside candidate run 1 pill -->
-        <rect x="270" y="490" width="130" height="90" rx="8"
-              fill="rgba(30, 41, 59, 0.6)" stroke="#334155" stroke-width="1"/>
-        <text x="335" y="508" fill="#94a3b8" font-size="8" text-anchor="middle">TASK</text>
-        <text x="290" y="522" fill="#64748b" font-size="7" text-anchor="middle">→ Agent</text>
-        <text x="290" y="534" fill="#64748b" font-size="7" text-anchor="middle">→ Patch</text>
-        <text x="290" y="546" fill="#64748b" font-size="7" text-anchor="middle">→ Eval</text>
-        <text x="290" y="558" fill="#64748b" font-size="7" text-anchor="middle">→ Judge</text>
-        <text x="290" y="570" fill="#64748b" font-size="7" text-anchor="middle">→ Verdict</text>
-
-        <!-- Inside astropy baseline run 1 pill -->
-        <rect x="490" y="490" width="130" height="90" rx="8"
-              fill="rgba(30, 41, 59, 0.6)" stroke="#334155" stroke-width="1"/>
-        <text x="555" y="508" fill="#94a3b8" font-size="8" text-anchor="middle">TASK</text>
-        <text x="510" y="522" fill="#64748b" font-size="7" text-anchor="middle">→ Agent</text>
-        <text x="510" y="534" fill="#64748b" font-size="7" text-anchor="middle">→ Patch</text>
-        <text x="510" y="546" fill="#64748b" font-size="7" text-anchor="middle">→ Eval</text>
-        <text x="510" y="558" fill="#64748b" font-size="7" text-anchor="middle">→ Judge</text>
-        <text x="510" y="570" fill="#64748b" font-size="7" text-anchor="middle">→ Verdict</text>
+        <text x="2100" y="630" fill="#475569" font-size="20" text-anchor="middle">N tasks total</text>
+        <text x="2100" y="680" fill="#475569" font-size="17" text-anchor="middle">M conditions each</text>
+        <text x="2100" y="730" fill="#475569" font-size="17" text-anchor="middle">K runs each</text>
+        <text x="2100" y="790" fill="#fb923c" font-size="20" text-anchor="middle">Total = N × M × K runs</text>
+        <text x="2100" y="835" fill="#fb923c" font-size="17" text-anchor="middle">max 100 in parallel</text>
 
         <!-- ============================================================
              ROW 3: AGGREGATION
              ============================================================ -->
 
         <!-- Arrow: Grid -> Aggregation -->
-        <line x1="960" y1="1090" x2="960" y2="1140"
-              stroke="#34d399" stroke-width="4" marker-end="url(#arr-e)"/>
-        <text x="980" y="1118" fill="#34d399" font-size="13">all run_meta results</text>
+        <line x1="1600" y1="1340" x2="1600" y2="1430"
+              stroke="#34d399" stroke-width="6" marker-end="url(#arr-e)"/>
+        <text x="1630" y="1390" fill="#34d399" font-size="17">all run_meta results</text>
 
-        <!-- Aggregation box -->
-        <rect x="760" y="1150" width="700" height="340" rx="20"
+        <!-- Aggregation outer box -->
+        <rect x="1140" y="1440" width="1300" height="460" rx="24"
               fill="rgba(6, 78, 59, 0.4)" stroke="#34d399" stroke-width="3"/>
-        <text x="1110" y="1186" fill="white" font-size="18" font-weight="600" text-anchor="middle">Aggregation & Analysis</text>
-        <line x1="760" y1="1202" x2="1460" y2="1202" stroke="#34d399" stroke-width="1" opacity="0.4"/>
+        <text x="1790" y="1492" fill="white" font-size="22" font-weight="600" text-anchor="middle">Aggregation & Analysis</text>
+        <line x1="1140" y1="1514" x2="2440" y2="1514" stroke="#34d399" stroke-width="1.5" opacity="0.4"/>
 
-        <!-- Sub-box: Summarize -->
-        <rect x="780" y="1218" width="300" height="120" rx="12"
-              fill="rgba(30, 41, 59, 0.5)" stroke="#94a3b8" stroke-width="1.5"/>
-        <text x="930" y="1244" fill="white" font-size="13" font-weight="600" text-anchor="middle">summarize.py</text>
-        <text x="796" y="1270" fill="#94a3b8" font-size="11">Per task × condition:</text>
-        <text x="796" y="1292" fill="#94a3b8" font-size="11">pass_rate, avg_judge_score</text>
-        <text x="796" y="1314" fill="#94a3b8" font-size="11">infra_failure_rate</text>
-        <text x="796" y="1336" fill="#94a3b8" font-size="11">avg_tokens, avg_cost</text>
+        <!-- Summarize -->
+        <rect x="1165" y="1540" width="400" height="170" rx="16"
+              fill="rgba(30, 41, 59, 0.5)" stroke="#94a3b8" stroke-width="2"/>
+        <text x="1365" y="1576" fill="white" font-size="17" font-weight="600" text-anchor="middle">summarize.py</text>
+        <text x="1185" y="1610" fill="#94a3b8" font-size="15">Per task × condition:</text>
+        <text x="1185" y="1648" fill="#94a3b8" font-size="15">pass_rate</text>
+        <text x="1185" y="1680" fill="#94a3b8" font-size="15">avg_judge_score</text>
+        <text x="1185" y="1712" fill="#94a3b8" font-size="15">infra_failure_rate</text>
+        <text x="1185" y="1744" fill="#94a3b8" font-size="15">avg_tokens, avg_cost</text>
 
-        <!-- Sub-box: Compare -->
-        <rect x="1100" y="1218" width="340" height="120" rx="12"
-              fill="rgba(30, 41, 59, 0.5)" stroke="#94a3b8" stroke-width="1.5"/>
-        <text x="1270" y="1244" fill="white" font-size="13" font-weight="600" text-anchor="middle">experiment_summarize.py</text>
-        <text x="1116" y="1270" fill="#94a3b8" font-size="11">Baseline vs Candidate:</text>
-        <text x="1116" y="1292" fill="#94a3b8" font-size="11">delta_pass_rate</text>
-        <text x="1116" y="1314" fill="#94a3b8" font-size="11">delta_avg_judge_score</text>
-        <text x="1116" y="1336" fill="#94a3b8" font-size="11">statistical significance</text>
+        <!-- Compare -->
+        <rect x="1590" y="1540" width="400" height="170" rx="16"
+              fill="rgba(30, 41, 59, 0.5)" stroke="#94a3b8" stroke-width="2"/>
+        <text x="1790" y="1576" fill="white" font-size="17" font-weight="600" text-anchor="middle">experiment_summarize.py</text>
+        <text x="1610" y="1610" fill="#94a3b8" font-size="15">Baseline vs Candidate:</text>
+        <text x="1610" y="1648" fill="#94a3b8" font-size="15">delta_pass_rate</text>
+        <text x="1610" y="1680" fill="#94a3b8" font-size="15">delta_avg_judge_score</text>
+        <text x="1610" y="1712" fill="#94a3b8" font-size="15">statistical significance</text>
 
-        <!-- Sub-box: DB -->
-        <rect x="780" y="1358" width="300" height="100" rx="12"
-              fill="rgba(76, 29, 149, 0.3)" stroke="#a78bfa" stroke-width="1.5"/>
-        <text x="930" y="1384" fill="white" font-size="13" font-weight="600" text-anchor="middle">Database (SQLite)</text>
-        <text x="796" y="1410" fill="#94a3b8" font-size="11">runs table: all run_meta</text>
-        <text x="796" y="1432" fill="#94a3b8" font-size="11">calibration_runs</text>
-        <text x="796" y="1454" fill="#94a3b8" font-size="11">conventions table</text>
+        <!-- DB -->
+        <rect x="2015" y="1540" width="400" height="170" rx="16"
+              fill="rgba(76, 29, 149, 0.3)" stroke="#a78bfa" stroke-width="2"/>
+        <text x="2215" y="1576" fill="white" font-size="17" font-weight="600" text-anchor="middle">Database (SQLite)</text>
+        <text x="2035" y="1610" fill="#94a3b8" font-size="15">runs table: all run_meta</text>
+        <text x="2035" y="1648" fill="#94a3b8" font-size="15">calibration_runs</text>
+        <text x="2035" y="1680" fill="#94a3b8" font-size="15">conventions table</text>
 
-        <!-- Sub-box: Web UI -->
-        <rect x="1100" y="1358" width="340" height="100" rx="12"
-              fill="rgba(8, 51, 68, 0.4)" stroke="#22d3ee" stroke-width="1.5"/>
-        <text x="1270" y="1384" fill="white" font-size="13" font-weight="600" text-anchor="middle">Web UI (monitor/debrief)</text>
-        <text x="1116" y="1410" fill="#94a3b8" font-size="11">MonitorPage: live status</text>
-        <text x="1116" y="1432" fill="#94a3b8" font-size="11">DebriefPage: results comparison</text>
-        <text x="1116" y="1454" fill="#94a3b8" font-size="11">experiment_* pages</text>
+        <!-- Web UI -->
+        <rect x="1165" y="1735" width="400" height="140" rx="16"
+              fill="rgba(8, 51, 68, 0.4)" stroke="#22d3ee" stroke-width="2"/>
+        <text x="1365" y="1771" fill="white" font-size="17" font-weight="600" text-anchor="middle">Web UI</text>
+        <text x="1185" y="1805" fill="#94a3b8" font-size="15">MonitorPage: live status</text>
+        <text x="1185" y="1837" fill="#94a3b8" font-size="15">DebriefPage: results comparison</text>
+
+        <!-- Experiment pages -->
+        <rect x="1590" y="1735" width="400" height="140" rx="16"
+              fill="rgba(8, 51, 68, 0.4)" stroke="#22d3ee" stroke-width="2"/>
+        <text x="1790" y="1771" fill="white" font-size="17" font-weight="600" text-anchor="middle">Experiment Pages</text>
+        <text x="1610" y="1805" fill="#94a3b8" font-size="15">ExperimentPage</text>
+        <text x="1610" y="1837" fill="#94a3b8" font-size="15">IncrementalPage</text>
 
         <!-- Arrow: Aggregation -> Results -->
-        <line x1="1460" y1="1310" x2="1540" y2="1310"
-              stroke="#34d399" stroke-width="3" marker-end="url(#arr-e)"/>
+        <line x1="2440" y1="1680" x2="2550" y2="1680"
+              stroke="#34d399" stroke-width="5" marker-end="url(#arr-e)"/>
 
         <!-- ============================================================
              OUTPUT: Results
              ============================================================ -->
-        <rect x="1550" y="1150" width="300" height="340" rx="16"
-              fill="rgba(6, 78, 59, 0.4)" stroke="#34d399" stroke-width="2.5"/>
-        <text x="1700" y="1186" fill="white" font-size="16" font-weight="600" text-anchor="middle">Results</text>
-        <line x1="1550" y1="1202" x2="1850" y2="1202" stroke="#34d399" stroke-width="1" opacity="0.4"/>
-        <text x="1570" y="1230" fill="#94a3b8" font-size="12">baseline_django__django-10924</text>
-        <text x="1570" y="1252" fill="#94a3b8" font-size="12">  pass_rate: 0.45</text>
-        <text x="1570" y="1274" fill="#94a3b8" font-size="12">  avg_judge_score: 0.72</text>
-        <text x="1570" y="1302" fill="#94a3b8" font-size="12">candidate_django__django-10924</text>
-        <text x="1570" y="1324" fill="#94a3b8" font-size="12">  pass_rate: 0.55 (+10%)</text>
-        <text x="1570" y="1346" fill="#94a3b8" font-size="12">  avg_judge_score: 0.81</text>
-        <text x="1570" y="1378" fill="#94a3b8" font-size="12">astropy__astropy-14182 baseline</text>
-        <text x="1570" y="1400" fill="#94a3b8" font-size="12">  pass_rate: 0.30</text>
-        <text x="1570" y="1428" fill="#94a3b8" font-size="12">sympy__sympy-23117 candidate</text>
-        <text x="1570" y="1450" fill="#94a3b8" font-size="12">  pass_rate: 0.60</text>
-        <text x="1570" y="1482" fill="#34d399" font-size="12">Total runs: up to 100 parallel</text>
+        <rect x="2560" y="1440" width="480" height="460" rx="20"
+              fill="rgba(6, 78, 59, 0.4)" stroke="#34d399" stroke-width="3"/>
+        <text x="2800" y="1492" fill="white" font-size="20" font-weight="600" text-anchor="middle">Results</text>
+        <line x1="2560" y1="1514" x2="3040" y2="1514" stroke="#34d399" stroke-width="1.5" opacity="0.4"/>
+
+        <text x="2590" y="1554" fill="white" font-size="15" font-weight="600">django__django-10924</text>
+        <text x="2610" y="1586" fill="#94a3b8" font-size="15">baseline: pass_rate 0.45</text>
+        <text x="2610" y="1614" fill="#94a3b8" font-size="15">candidate: pass_rate 0.55</text>
+        <text x="2610" y="1642" fill="#34d399" font-size="15">delta: +10%</text>
+
+        <text x="2590" y="1692" fill="white" font-size="15" font-weight="600">astropy__astropy-14182</text>
+        <text x="2610" y="1724" fill="#94a3b8" font-size="15">baseline: pass_rate 0.30</text>
+        <text x="2610" y="1752" fill="#94a3b8" font-size="15">candidate: pass_rate 0.42</text>
+        <text x="2610" y="1780" fill="#34d399" font-size="15">delta: +12%</text>
+
+        <text x="2590" y="1830" fill="white" font-size="15" font-weight="600">sympy__sympy-23117</text>
+        <text x="2610" y="1862" fill="#94a3b8" font-size="15">baseline: pass_rate 0.60</text>
+        <text x="2610" y="1890" fill="#94a3b8" font-size="15">candidate: pass_rate 0.55</text>
+        <text x="2610" y="1918" fill="#fb7185" font-size="15">delta: -5%</text>
 
         <!-- ============================================================
              LEGEND
              ============================================================ -->
-        <rect x="30" y="1520" width="1820" height="70" rx="12"
-              fill="rgba(15, 23, 42, 0.5)" stroke="#1e293b" stroke-width="1.5"/>
-        <text x="54" y="1550" fill="white" font-size="13" font-weight="600">Legend</text>
+        <rect x="40" y="1920" width="3000" height="90" rx="16"
+              fill="rgba(15, 23, 42, 0.5)" stroke="#1e293b" stroke-width="2"/>
+        <text x="70" y="1956" fill="white" font-size="16" font-weight="600">Legend</text>
 
-        <rect x="54" y="1566" width="22" height="15" rx="3" fill="rgba(8, 51, 68, 0.5)" stroke="#22d3ee" stroke-width="1.5"/>
-        <text x="84" y="1578" fill="#94a3b8" font-size="12">Task Input</text>
+        <rect x="70" y="1974" width="26" height="18" rx="4" fill="rgba(8, 51, 68, 0.5)" stroke="#22d3ee" stroke-width="2"/>
+        <text x="106" y="1988" fill="#94a3b8" font-size="15">Task Input</text>
 
-        <rect x="180" y="1566" width="22" height="15" rx="3" fill="rgba(120, 53, 15, 0.4)" stroke="#fbbf24" stroke-width="1.5"/>
-        <text x="210" y="1578" fill="#94a3b8" font-size="12">Run (baseline)</text>
+        <rect x="230" y="1974" width="26" height="18" rx="4" fill="rgba(120, 53, 15, 0.4)" stroke="#fbbf24" stroke-width="2"/>
+        <text x="266" y="1988" fill="#94a3b8" font-size="15">Run (baseline)</text>
 
-        <rect x="340" y="1566" width="22" height="15" rx="3" fill="rgba(76, 29, 149, 0.4)" stroke="#a78bfa" stroke-width="1.5"/>
-        <text x="370" y="1578" fill="#94a3b8" font-size="12">Run (candidate)</text>
+        <rect x="420" y="1974" width="26" height="18" rx="4" fill="rgba(76, 29, 149, 0.4)" stroke="#a78bfa" stroke-width="2"/>
+        <text x="456" y="1988" fill="#94a3b8" font-size="15">Run (candidate)</text>
 
-        <rect x="510" y="1566" width="22" height="15" rx="3" fill="rgba(6, 78, 59, 0.4)" stroke="#34d399" stroke-width="1.5"/>
-        <text x="540" y="1578" fill="#94a3b8" font-size="12">Aggregation</text>
+        <rect x="660" y="1974" width="26" height="18" rx="4" fill="rgba(6, 78, 59, 0.4)" stroke="#34d399" stroke-width="2"/>
+        <text x="696" y="1988" fill="#94a3b8" font-size="15">Aggregation</text>
 
-        <line x1="700" y1="1573" x2="730" y2="1573" stroke="#fbbf24" stroke-width="3" marker-end="url(#arr-a)"/>
-        <text x="738" y="1578" fill="#94a3b8" font-size="12">Parallel Spawn</text>
+        <rect x="890" y="1974" width="26" height="18" rx="4" fill="rgba(251, 191, 36, 0.08)" stroke="#fbbf24" stroke-width="2" stroke-dasharray="5,3"/>
+        <text x="926" y="1988" fill="#94a3b8" font-size="15">Config</text>
 
-        <line x1="900" y1="1573" x2="930" y2="1573" stroke="#34d399" stroke-width="3" marker-end="url(#arr-e)"/>
-        <text x="938" y="1578" fill="#94a3b8" font-size="12">Results Flow</text>
+        <line x1="1100" y="1983" x2="1144" y2="1983" stroke="#fbbf24" stroke-width="5" marker-end="url(#arr-a)"/>
+        <text x="1154" y="1988" fill="#94a3b8" font-size="15">Parallel Spawn</text>
 
-        <rect x="1100" y="1566" width="22" height="15" rx="3" fill="rgba(251, 191, 36, 0.08)" stroke="#fbbf24" stroke-width="1.5" stroke-dasharray="4,3"/>
-        <text x="1130" y="1578" fill="#94a3b8" font-size="12">Config</text>
+        <line x1="1340" y="1983" x2="1384" y2="1983" stroke="#34d399" stroke-width="5" marker-end="url(#arr-e)"/>
+        <text x="1394" y="1988" fill="#94a3b8" font-size="15">Results Flow</text>
 
       </svg>
     </div>

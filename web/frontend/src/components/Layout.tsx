@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, Outlet, useLocation } from 'react-router-dom';
-import { LayoutDashboard, TrendingUp, List, Rocket, Monitor, CheckCircle2 } from 'lucide-react';
+import { LayoutDashboard, TrendingUp, List, Rocket } from 'lucide-react';
 
 const Layout: React.FC = () => {
   const location = useLocation();

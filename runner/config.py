@@ -31,9 +31,12 @@ def _float_env(name: str) -> float:
 
 def load_config(env_path: Path | None = None) -> HarnessConfig:
     load_dotenv(env_path or PROJECT_ROOT / ".env")
-    extra = os.environ.get("AIDER_EXTRA_ARGS", "--yes-always --no-auto-commits")
+    extra = os.environ.get("AIDER_EXTRA_ARGS", "--yes-always --auto-commits")
     extra_args = shlex.split(extra)
-    if "--show-model-warnings" not in extra_args and "--no-show-model-warnings" not in extra_args:
+    if (
+        "--show-model-warnings" not in extra_args
+        and "--no-show-model-warnings" not in extra_args
+    ):
         extra_args.append("--no-show-model-warnings")
     return HarnessConfig(
         aider_model=os.environ.get("AIDER_MODEL", "MiniMax-M2.7-highspeed"),

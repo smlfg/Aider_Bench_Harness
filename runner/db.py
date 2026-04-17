@@ -29,9 +29,21 @@ CREATE TABLE IF NOT EXISTS runs (
   tests_total INTEGER NOT NULL,
   tests_passed INTEGER NOT NULL,
   task_success INTEGER NOT NULL,
+  fail_to_pass_total INTEGER NOT NULL DEFAULT 0,
+  fail_to_pass_passed INTEGER NOT NULL DEFAULT 0,
+  pass_to_pass_total INTEGER NOT NULL DEFAULT 0,
+  pass_to_pass_passed INTEGER NOT NULL DEFAULT 0,
+  target_file TEXT,
+  target_files TEXT,
   files_changed INTEGER NOT NULL,
   lines_added INTEGER NOT NULL,
   lines_removed INTEGER NOT NULL,
+  fail_to_pass_total INTEGER NOT NULL DEFAULT 0,
+  fail_to_pass_passed INTEGER NOT NULL DEFAULT 0,
+  pass_to_pass_total INTEGER NOT NULL DEFAULT 0,
+  pass_to_pass_passed INTEGER NOT NULL DEFAULT 0,
+  target_file TEXT,
+  target_files TEXT,
   judge_score REAL,
   judge_model TEXT,
   judge_prompt_version TEXT,
@@ -45,6 +57,13 @@ CREATE TABLE IF NOT EXISTS runs (
   judge_tokens_out INTEGER,
   judge_cost_estimate REAL,
   judge_result_json TEXT,
+  judge_report_path TEXT,
+  judge_report_json TEXT,
+  judge_report_schema_version INTEGER,
+  judge_report_status TEXT,
+  judge_report_failure_reason TEXT,
+  diff_source TEXT NOT NULL DEFAULT 'none',
+  unrelated_edits_present INTEGER NOT NULL DEFAULT 0,
   artifacts_dir TEXT NOT NULL
 );
 
@@ -119,9 +138,13 @@ def init_db(db_path: Path = DB_PATH) -> None:
             "failure_kind",
             "TEXT NOT NULL DEFAULT 'unknown'",
         )
-        _ensure_column(conn, "run_registry", "status", "TEXT NOT NULL DEFAULT 'starting'")
+        _ensure_column(
+            conn, "run_registry", "status", "TEXT NOT NULL DEFAULT 'starting'"
+        )
         _ensure_column(conn, "run_registry", "pid", "INTEGER")
-        _ensure_column(conn, "run_registry", "artifacts_dir", "TEXT NOT NULL DEFAULT ''")
+        _ensure_column(
+            conn, "run_registry", "artifacts_dir", "TEXT NOT NULL DEFAULT ''"
+        )
         _ensure_column(conn, "run_registry", "start_ts", "TEXT NOT NULL DEFAULT ''")
         _ensure_column(conn, "run_registry", "updated_ts", "TEXT NOT NULL DEFAULT ''")
         _ensure_column(conn, "run_registry", "model_name", "TEXT NOT NULL DEFAULT ''")
@@ -144,6 +167,31 @@ def init_db(db_path: Path = DB_PATH) -> None:
         _ensure_column(conn, "runs", "judge_tokens_out", "INTEGER")
         _ensure_column(conn, "runs", "judge_cost_estimate", "REAL")
         _ensure_column(conn, "runs", "judge_result_json", "TEXT")
+        _ensure_column(conn, "runs", "judge_report_path", "TEXT")
+        _ensure_column(conn, "runs", "judge_report_json", "TEXT")
+        _ensure_column(conn, "runs", "judge_report_schema_version", "INTEGER")
+        _ensure_column(conn, "runs", "judge_report_status", "TEXT")
+        _ensure_column(conn, "runs", "judge_report_failure_reason", "TEXT")
+        _ensure_column(conn, "runs", "diff_source", "TEXT NOT NULL DEFAULT 'none'")
+        _ensure_column(conn, "runs", "fail_to_pass_total", "INTEGER NOT NULL DEFAULT 0")
+        _ensure_column(conn, "runs", "fail_to_pass_passed", "INTEGER NOT NULL DEFAULT 0")
+        _ensure_column(conn, "runs", "pass_to_pass_total", "INTEGER NOT NULL DEFAULT 0")
+        _ensure_column(conn, "runs", "pass_to_pass_passed", "INTEGER NOT NULL DEFAULT 0")
+        _ensure_column(conn, "runs", "target_file", "TEXT")
+        _ensure_column(conn, "runs", "target_files", "TEXT")
+        _ensure_column(
+            conn, "runs", "unrelated_edits_present", "INTEGER NOT NULL DEFAULT 0"
+        )
+        _ensure_column(conn, "runs", "fail_to_pass_total", "INTEGER NOT NULL DEFAULT 0")
+        _ensure_column(
+            conn, "runs", "fail_to_pass_passed", "INTEGER NOT NULL DEFAULT 0"
+        )
+        _ensure_column(conn, "runs", "pass_to_pass_total", "INTEGER NOT NULL DEFAULT 0")
+        _ensure_column(
+            conn, "runs", "pass_to_pass_passed", "INTEGER NOT NULL DEFAULT 0"
+        )
+        _ensure_column(conn, "runs", "target_file", "TEXT")
+        _ensure_column(conn, "runs", "target_files", "TEXT")
         _ensure_column(conn, "calibration_runs", "error_detail", "TEXT")
 
 
@@ -207,9 +255,21 @@ def insert_run(conn: sqlite3.Connection, row: dict[str, Any]) -> None:
         "tests_total",
         "tests_passed",
         "task_success",
+        "fail_to_pass_total",
+        "fail_to_pass_passed",
+        "pass_to_pass_total",
+        "pass_to_pass_passed",
+        "target_file",
+        "target_files",
         "files_changed",
         "lines_added",
         "lines_removed",
+        "fail_to_pass_total",
+        "fail_to_pass_passed",
+        "pass_to_pass_total",
+        "pass_to_pass_passed",
+        "target_file",
+        "target_files",
         "judge_score",
         "judge_model",
         "judge_prompt_version",
@@ -223,6 +283,13 @@ def insert_run(conn: sqlite3.Connection, row: dict[str, Any]) -> None:
         "judge_tokens_out",
         "judge_cost_estimate",
         "judge_result_json",
+        "judge_report_path",
+        "judge_report_json",
+        "judge_report_schema_version",
+        "judge_report_status",
+        "judge_report_failure_reason",
+        "diff_source",
+        "unrelated_edits_present",
         "artifacts_dir",
     ]
     conn.execute(
@@ -350,7 +417,9 @@ def fetch_run_registry_rows(
 
 
 def fetch_run_registry_row(conn: sqlite3.Connection, run_id: str) -> sqlite3.Row | None:
-    return conn.execute("SELECT * FROM run_registry WHERE run_id = ?", (run_id,)).fetchone()
+    return conn.execute(
+        "SELECT * FROM run_registry WHERE run_id = ?", (run_id,)
+    ).fetchone()
 
 
 def delete_run_registry_row(conn: sqlite3.Connection, run_id: str) -> None:

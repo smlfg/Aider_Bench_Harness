@@ -1,0 +1,30 @@
+{
+  "experiment": {
+    "name": "harness_policy_experiment",
+    "iteration": 1,
+    "description": "Measure whether minimalist harness policy outperforms verbose one"
+  },
+  "tasks": {
+    "file": "data/tasks_astropy_small.json",
+    "selection": "all"
+  },
+  "conditions": {
+    "baseline_6line": {
+      "conventions_path": "harness/CONVENTIONS.baseline.md",
+      "description": "Minimalist 6-line policy (control)"
+    },
+    "negative_control_karpathy40": {
+      "conventions_path": "harness/CONVENTIONS.negative_control_karpathy40.md",
+      "description": "Verbose 40-\u00a7 policy (negative control)"
+    }
+  },
+  "runs_per_condition_per_task": 3,
+  "model_name": "openai/MiniMax-M2.7",
+  "agent_timeout_seconds": 1800,
+  "eval_timeout_seconds": 7200,
+  "fail_fast": {
+    "enabled": true,
+    "variance_threshold": 0.5,
+    "min_reproducible_success_rate": 0.33
+  }
+}

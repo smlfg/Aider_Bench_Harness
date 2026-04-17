@@ -65,3 +65,40 @@ def diff_stats(patch: str) -> tuple[int, int, int]:
             removed += 1
     return len(files), added, removed
 
+
+def changed_files_from_patch(patch: str) -> list[str]:
+    files = []
+    for line in patch.splitlines():
+        if line.startswith("diff --git "):
+            parts = line.split()
+            if len(parts) >= 4:
+                path = parts[2][2:] if parts[2].startswith("a/") else parts[2]
+                files.append(path)
+    return files
+
+
+def unrelated_edits_present(patch: str, expected_dirs: list[str] | None = None) -> bool:
+    """
+    Detect if patch contains edits outside expected directories.
+
+    Args:
+        patch: The git diff patch
+        expected_dirs: List of directory prefixes that are allowed.
+                      If None, only CONVENTIONS.md is allowed as unrelated.
+    """
+    if not patch.strip():
+        return False
+
+    changed = changed_files_from_patch(patch)
+    if not expected_dirs:
+        return False
+
+    for path in changed:
+        if path == "CONVENTIONS.md":
+            continue
+        normalized = path.lstrip("/")
+        if not any(
+            normalized.startswith(d.lstrip("/")) or d == "*" for d in expected_dirs
+        ):
+            return True
+    return False

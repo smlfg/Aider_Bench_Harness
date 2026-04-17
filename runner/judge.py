@@ -14,6 +14,50 @@ from runner.tokens import estimate_judge_cost
 
 
 PROMPT_VERSION = "two_stage_v1"
+JUDGE_LOG_EXCERPT_CHARS = 4000
+FORBIDDEN_JUDGE_KEYS = {
+    "condition",
+    "condition_id",
+    "condition_name",
+    "conventions_path",
+    "conventions_content",
+    "policy",
+    "policy_file",
+    "policy_content",
+    "baseline",
+    "negative_control",
+}
+
+
+def _extract_log_excerpt(text: str, limit: int = JUDGE_LOG_EXCERPT_CHARS) -> str:
+    if not text:
+        return ""
+    text = text.strip()
+    if len(text) <= limit:
+        return text
+    return text[-limit:]
+
+
+def sanitize_judge_input(judge_input: dict[str, Any]) -> dict[str, Any]:
+    leaked = sorted(k for k in judge_input.keys() if k in FORBIDDEN_JUDGE_KEYS)
+    if leaked:
+        raise SystemExit(f"Judge input contains forbidden keys: {', '.join(leaked)}")
+
+    payload = {
+        "prompt_version": PROMPT_VERSION,
+        "task_id": judge_input.get("task_id"),
+        "problem_statement": judge_input.get("problem_statement"),
+        "diff": judge_input.get("diff"),
+        "diff_source": judge_input.get("diff_source", "uncommitted"),
+        "tests": judge_input.get("tests"),
+        "agent_stdout": _extract_log_excerpt(str(judge_input.get("agent_stdout", ""))),
+        "agent_stderr": _extract_log_excerpt(str(judge_input.get("agent_stderr", ""))),
+    }
+
+    if not payload["task_id"] or payload["problem_statement"] is None:
+        raise SystemExit("Judge input missing required task_id/problem_statement")
+
+    return payload
 
 
 def neutral_result(model: str) -> dict[str, Any]:
@@ -87,7 +131,9 @@ def _extract_json_text(text: str) -> str:
     except json.JSONDecodeError:
         pass
     if stripped.startswith("```"):
-        stripped = stripped.split("```", 2)[1] if stripped.count("```") >= 2 else stripped
+        stripped = (
+            stripped.split("```", 2)[1] if stripped.count("```") >= 2 else stripped
+        )
     start = stripped.find("{")
     end = stripped.rfind("}")
     if start != -1 and end != -1 and end > start:
@@ -106,19 +152,38 @@ def _mean_score(scores: list[float]) -> float:
 
 
 def _judge_input_text(judge_input: dict[str, Any]) -> str:
-    payload = {
-        "prompt_version": PROMPT_VERSION,
-        "task_id": judge_input.get("task_id"),
-        "problem_statement": judge_input.get("problem_statement"),
-        "diff": judge_input.get("diff"),
-        "tests": judge_input.get("tests"),
-        "agent_stdout": judge_input.get("agent_stdout", ""),
-        "agent_stderr": judge_input.get("agent_stderr", ""),
-    }
+    payload = sanitize_judge_input(judge_input)
     return json.dumps(payload, indent=2, ensure_ascii=False)
 
 
 def _build_stage1_messages(judge_input: dict[str, Any]) -> list[dict[str, str]]:
+    diff_source = judge_input.get("diff_source", "uncommitted")
+    if diff_source == "none":
+        user_content = (
+            "Aider produced NO diff (no commits, no uncommitted changes).\n"
+            "Evaluate the agent's attempt based on its stdout/stderr output.\n\n"
+            "- scope_adherence: 1-5, how well the agent's stated intent matched the task scope\n"
+            "- minimality: 1-5, how focused the agent's approach was (even without a diff)\n"
+            "- diff_clarity: set to 1 (no diff exists to evaluate)\n\n"
+            "Set judge_score to the arithmetic mean of the three scores.\n"
+            "Write a short rationale of at most 60 words explaining WHY no diff was produced. "
+            "Reference concrete output lines, error messages, or agent statements.\n"
+            "Return JSON with exactly these keys:\n"
+            "scope_adherence, minimality, diff_clarity, judge_score, rationale\n\n"
+            f"Evidence:\n{_judge_input_text(judge_input)}"
+        )
+    else:
+        user_content = (
+            "Evaluate the patch on three axes:\n"
+            "- scope_adherence: 1-5, how tightly the patch stays within the task scope\n"
+            "- minimality: 1-5, how small and non-invasive the change is\n"
+            "- diff_clarity: 1-5, how understandable and well-structured the diff is\n\n"
+            "Set judge_score to the arithmetic mean of the three scores.\n"
+            "Write a short rationale of at most 60 words that names at least one concrete file, symbol, or output clue.\n"
+            "Return JSON with exactly these keys:\n"
+            "scope_adherence, minimality, diff_clarity, judge_score, rationale\n\n"
+            f"Evidence:\n{_judge_input_text(judge_input)}"
+        )
     return [
         {
             "role": "system",
@@ -127,28 +192,43 @@ def _build_stage1_messages(judge_input: dict[str, Any]) -> list[dict[str, str]]:
                 "Score only patch quality from the supplied evidence, including the full Aider output. "
                 "Ground your rationale in concrete files, code locations, or messages when available. "
                 "Do not mention the condition label or speculate about hidden context. "
+                "Aider automatically adds `.aider*` entries to `.gitignore` and creates `.aider.chat.history.md` "
+                "and similar tracking files. These are Aider infrastructure artifacts, NOT part of the user's patch. "
+                "Ignore `.aider*` file changes in your evaluation. "
                 "Return only valid JSON."
             ),
         },
         {
             "role": "user",
-            "content": (
-                "Evaluate the patch on three axes:\n"
-                "- scope_adherence: 1-5, how tightly the patch stays within the task scope\n"
-                "- minimality: 1-5, how small and non-invasive the change is\n"
-                "- diff_clarity: 1-5, how understandable and well-structured the diff is\n\n"
-                "Set judge_score to the arithmetic mean of the three scores.\n"
-                "Write a short rationale of at most 60 words that names at least one concrete file, symbol, or output clue.\n"
-                "Return JSON with exactly these keys:\n"
-                "scope_adherence, minimality, diff_clarity, judge_score, rationale\n\n"
-                "Evidence:\n"
-                f"{_judge_input_text(judge_input)}"
-            ),
+            "content": user_content,
         },
     ]
 
 
-def _build_stage2_messages(judge_input: dict[str, Any], stage1: dict[str, Any]) -> list[dict[str, str]]:
+def _build_stage2_messages(
+    judge_input: dict[str, Any], stage1: dict[str, Any]
+) -> list[dict[str, str]]:
+    diff_source = judge_input.get("diff_source", "uncommitted")
+    if diff_source == "none":
+        user_content = (
+            "No diff was produced. Given the agent output and stage-1 scores, write a conclusion.\n"
+            "Choose verdict from: support, mixed, reject.\n"
+            "Keep the conclusion under 40 words and explain what the agent attempted and why it failed to produce a diff.\n"
+            "Return JSON with exactly these keys:\n"
+            "verdict, conclusion\n\n"
+            f"Stage 1 JSON:\n{json.dumps(stage1, indent=2, ensure_ascii=False)}\n\n"
+            f"Evidence:\n{_judge_input_text(judge_input)}"
+        )
+    else:
+        user_content = (
+            "Given the same evidence and the stage-1 scores below, write a concise conclusion.\n"
+            "Choose verdict from: support, mixed, reject.\n"
+            "Keep the conclusion under 40 words and mention at least one concrete file, patch effect, or unresolved failure.\n"
+            "Return JSON with exactly these keys:\n"
+            "verdict, conclusion\n\n"
+            f"Stage 1 JSON:\n{json.dumps(stage1, indent=2, ensure_ascii=False)}\n\n"
+            f"Evidence:\n{_judge_input_text(judge_input)}"
+        )
     return [
         {
             "role": "system",
@@ -158,25 +238,22 @@ def _build_stage2_messages(judge_input: dict[str, Any], stage1: dict[str, Any]) 
                 "Now write the final conclusion only, and keep it grounded in the full Aider output and diff. "
                 "Reference the concrete change or failure mechanism when possible. "
                 "Keep it concise, factual, and blind to any hidden condition labels. "
+                "Aider automatically adds `.aider*` entries to `.gitignore` and creates `.aider.chat.history.md` "
+                "and similar tracking files. These are Aider infrastructure artifacts, NOT part of the user's patch. "
+                "Ignore `.aider*` file changes in your evaluation. "
                 "Return only valid JSON."
             ),
         },
         {
             "role": "user",
-            "content": (
-                "Given the same evidence and the stage-1 scores below, write a concise conclusion.\n"
-                "Choose verdict from: support, mixed, reject.\n"
-                "Keep the conclusion under 40 words and mention at least one concrete file, patch effect, or unresolved failure.\n"
-                "Return JSON with exactly these keys:\n"
-                "verdict, conclusion\n\n"
-                f"Stage 1 JSON:\n{json.dumps(stage1, indent=2, ensure_ascii=False)}\n\n"
-                f"Evidence:\n{_judge_input_text(judge_input)}"
-            ),
+            "content": user_content,
         },
     ]
 
 
-def _completion(model: str, messages: list[dict[str, str]]) -> tuple[dict[str, Any], int | None, int | None]:
+def _completion(
+    model: str, messages: list[dict[str, str]]
+) -> tuple[dict[str, Any], int | None, int | None]:
     config = load_config()
     os.environ.update(subprocess_env(config))
     try:
@@ -193,7 +270,9 @@ def _completion(model: str, messages: list[dict[str, str]]) -> tuple[dict[str, A
             timeout=120,
         )
     except Exception as exc:
-        raise SystemExit(f"Judge completion failed ({model}): {type(exc).__name__}: {exc}") from exc
+        raise SystemExit(
+            f"Judge completion failed ({model}): {type(exc).__name__}: {exc}"
+        ) from exc
 
     text = _response_text(response)
     if not text:
@@ -210,7 +289,9 @@ def _normalize_stage1(payload: dict[str, Any]) -> dict[str, Any]:
         minimality = int(payload["minimality"])
         clarity = int(payload["diff_clarity"])
     except Exception as exc:
-        raise SystemExit(f"Judge stage 1 payload missing rubric scores: {payload}") from exc
+        raise SystemExit(
+            f"Judge stage 1 payload missing rubric scores: {payload}"
+        ) from exc
     judge_score = payload.get("judge_score")
     if judge_score is None:
         judge_score = _mean_score([float(scope), float(minimality), float(clarity)])
@@ -236,7 +317,9 @@ def _run_native_judge(
     model: str,
     config: Any,
 ) -> dict[str, Any]:
-    stage1_payload, stage1_in, stage1_out = _completion(model, _build_stage1_messages(judge_input))
+    stage1_payload, stage1_in, stage1_out = _completion(
+        model, _build_stage1_messages(judge_input)
+    )
     stage1 = _normalize_stage1(stage1_payload)
 
     stage2_payload, stage2_in, stage2_out = _completion(
@@ -244,8 +327,16 @@ def _run_native_judge(
     )
     stage2 = _normalize_stage2(stage2_payload)
 
-    tokens_in = None if stage1_in is None and stage2_in is None else (stage1_in or 0) + (stage2_in or 0)
-    tokens_out = None if stage1_out is None and stage2_out is None else (stage1_out or 0) + (stage2_out or 0)
+    tokens_in = (
+        None
+        if stage1_in is None and stage2_in is None
+        else (stage1_in or 0) + (stage2_in or 0)
+    )
+    tokens_out = (
+        None
+        if stage1_out is None and stage2_out is None
+        else (stage1_out or 0) + (stage2_out or 0)
+    )
     result = {
         "prompt_version": PROMPT_VERSION,
         "judge_model": model,
@@ -283,7 +374,9 @@ def _run_judge_command(command: str, judge_input: Path, model: str) -> dict[str,
         result["judge_score"] = _mean_score(scores)
     result.setdefault("rationale", "")
     result.setdefault("verdict", "mixed")
-    result.setdefault("conclusion", result.get("rationale", "") or "No conclusion provided.")
+    result.setdefault(
+        "conclusion", result.get("rationale", "") or "No conclusion provided."
+    )
     return result
 
 
@@ -293,7 +386,9 @@ def update_score(artifacts_dir: Path, score: float) -> None:
         return
     run_id = json.loads(run_meta_path.read_text(encoding="utf-8"))["run_id"]
     with connect() as conn:
-        conn.execute("UPDATE runs SET judge_score = ? WHERE run_id = ?", (score, run_id))
+        conn.execute(
+            "UPDATE runs SET judge_score = ? WHERE run_id = ?", (score, run_id)
+        )
 
 
 def update_judge_result(artifacts_dir: Path, result: dict[str, Any]) -> None:
@@ -342,7 +437,9 @@ def update_judge_result(artifacts_dir: Path, result: dict[str, Any]) -> None:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Run blind LLM judge for one artifact dir.")
+    parser = argparse.ArgumentParser(
+        description="Run blind LLM judge for one artifact dir."
+    )
     parser.add_argument("--artifacts-dir", type=Path, required=True)
     parser.add_argument("--allow-stub", action="store_true")
     args = parser.parse_args()
@@ -351,9 +448,12 @@ def main() -> None:
     if not judge_input_path.exists():
         raise SystemExit(f"Missing judge input: {judge_input_path}")
     judge_input = json.loads(judge_input_path.read_text(encoding="utf-8"))
+    judge_input = sanitize_judge_input(judge_input)
 
     if config.judge_command:
-        result = _run_judge_command(config.judge_command, judge_input_path, config.judge_model)
+        result = _run_judge_command(
+            config.judge_command, judge_input_path, config.judge_model
+        )
     elif args.allow_stub:
         result = neutral_result(config.judge_model)
     else:

@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { fetchAnalysis, fetchComparisons, AnalysisRow, ComparisonRow } from '../lib/api';
+import { fetchAnalysis, fetchComparisons } from '../lib/api';
+import type { AnalysisRow, ComparisonRow } from '../lib/api';
 import PlotFigure from '../components/PlotFigure';
-import { AlertTriangle, CheckCircle2, XCircle } from 'lucide-react';
+import { AlertTriangle } from 'lucide-react';
+import * as Plot from "@observablehq/plot";
 
 const AnalysisPage: React.FC = () => {
   const [iterations, setIterations] = useState<number[]>([]);
@@ -61,7 +63,7 @@ const AnalysisPage: React.FC = () => {
             <div className="ml-3">
               <h3 className="text-sm font-medium text-red-800">Warning: AI-Slop Detected</h3>
               <p className="text-sm text-red-700 mt-1">
-                Diff size increased by >50% while task success remained flat or decreased. 
+                Diff size increased by {'>'}50% while task success remained flat or decreased. 
                 The candidate is likely adding unnecessary code ("slop") without improving outcomes.
               </p>
             </div>

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { fetchTrajectory, TrajectoryRow } from '../lib/api';
+import { fetchTrajectory } from '../lib/api';
+import type { TrajectoryRow } from '../lib/api';
 import PlotFigure from '../components/PlotFigure';
 import * as Plot from "@observablehq/plot";
 

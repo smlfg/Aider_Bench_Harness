@@ -106,9 +106,9 @@ const MonitorPage: React.FC = () => {
             </div>
             <div className="p-4 overflow-y-auto text-sm">
               <h4 className="font-bold text-gray-900">{run?.task_id}</h4>
-              <p className="mt-2 text-gray-600 whitespace-pre-wrap font-sans leading-relaxed">
-                {run?.error_detail || 'Fetching task details...'}
-              </p>
+<p className="mt-2 text-gray-600 whitespace-pre-wrap font-sans leading-relaxed">
+                  {task?.problem_statement || 'Fetching task details...'}
+                </p>
             </div>
           </div>
           {/* Q2: Conventions */}

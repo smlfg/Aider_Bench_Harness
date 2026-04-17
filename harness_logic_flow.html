@@ -14,7 +14,7 @@
       padding: 2rem;
       color: white;
     }
-    .container { max-width: 1200px; margin: 0 auto; }
+    .container { max-width: 1400px; margin: 0 auto; }
     .header { margin-bottom: 2rem; }
     .header-row { display: flex; align-items: center; gap: 1rem; margin-bottom: 0.5rem; }
     .pulse-dot {
@@ -33,8 +33,8 @@
       padding: 2rem;
       overflow-x: auto;
     }
-    svg { width: 100%; min-width: 900px; display: block; }
-    .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1rem; margin-top: 2rem; }
+    svg { width: 100%; min-width: 1100px; display: block; }
+    .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1rem; margin-top: 2rem; }
     .card {
       background: rgba(15, 23, 42, 0.5);
       border-radius: 0.75rem;
@@ -44,9 +44,8 @@
     .card-header { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem; }
     .card-dot { width: 8px; height: 8px; border-radius: 50%; }
     .card-dot.cyan { background: #22d3ee; }
-    .card-dot.emerald { background: #34d399; }
-    .card-dot.violet { background: #a78bfa; }
     .card-dot.amber { background: #fbbf24; }
+    .card-dot.violet { background: #a78bfa; }
     .card h3 { font-size: 0.875rem; font-weight: 600; }
     .card ul { list-style: none; color: #94a3b8; font-size: 0.8rem; }
     .card li { margin-bottom: 0.4rem; }
@@ -64,16 +63,16 @@
     </div>
 
     <div class="diagram-container">
-      <svg viewBox="0 0 1100 720">
+      <svg viewBox="0 0 1400 900">
         <defs>
-          <marker id="arr" markerWidth="14" markerHeight="10" refX="12" refY="5" orient="auto">
-            <polygon points="0 0, 14 5, 0 10" fill="#64748b" />
+          <marker id="arr" markerWidth="16" markerHeight="12" refX="14" refY="6" orient="auto">
+            <polygon points="0 0, 16 6, 0 12" fill="#64748b" />
           </marker>
-          <marker id="arr-a" markerWidth="14" markerHeight="10" refX="12" refY="5" orient="auto">
-            <polygon points="0 0, 14 5, 0 10" fill="#fbbf24" />
+          <marker id="arr-a" markerWidth="16" markerHeight="12" refX="14" refY="6" orient="auto">
+            <polygon points="0 0, 16 6, 0 12" fill="#fbbf24" />
           </marker>
-          <marker id="arr-e" markerWidth="14" markerHeight="10" refX="12" refY="5" orient="auto">
-            <polygon points="0 0, 14 5, 0 10" fill="#34d399" />
+          <marker id="arr-e" markerWidth="16" markerHeight="12" refX="14" refY="6" orient="auto">
+            <polygon points="0 0, 16 6, 0 12" fill="#34d399" />
           </marker>
           <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
             <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#1e293b" stroke-width="0.5"/>
@@ -83,178 +82,250 @@
         <rect width="100%" height="100%" fill="url(#grid)" />
 
         <!-- ============================================================
-             BOX 1: TASK
+             BOX 1: TASK (large, left)
              ============================================================ -->
-        <rect x="30" y="40" width="240" height="480" rx="14"
-              fill="rgba(8, 51, 68, 0.5)" stroke="#22d3ee" stroke-width="2.5"/>
-        <text x="150" y="74" fill="#22d3ee" font-size="14" font-weight="600" text-anchor="middle">TASK</text>
-        <line x1="30" y1="88" x2="270" y2="88" stroke="#22d3ee" stroke-width="0.5" opacity="0.4"/>
+        <rect x="30" y="30" width="300" height="600" rx="16"
+              fill="rgba(8, 51, 68, 0.5)" stroke="#22d3ee" stroke-width="3"/>
+        <text x="180" y="66" fill="#22d3ee" font-size="16" font-weight="600" text-anchor="middle">TASK</text>
+        <line x1="30" y1="82" x2="330" y2="82" stroke="#22d3ee" stroke-width="0.5" opacity="0.4"/>
 
-        <text x="44" y="114" fill="white" font-size="12" font-weight="600">SWE-bench Task</text>
-        <text x="44" y="140" fill="#94a3b8" font-size="11">instance_id</text>
-        <text x="44" y="162" fill="#94a3b8" font-size="11">problem_statement</text>
-        <text x="44" y="184" fill="#94a3b8" font-size="11">(was the bug, what needs fixing)</text>
-        <text x="44" y="206" fill="#94a3b8" font-size="11">test_patch</text>
-        <text x="44" y="228" fill="#94a3b8" font-size="11">(expected test changes)</text>
+        <text x="50" y="112" fill="white" font-size="13" font-weight="600">SWE-bench Task</text>
 
-        <line x1="30" y1="248" x2="270" y2="248" stroke="#1e293b" stroke-width="0.5" opacity="0.5"/>
+        <text x="50" y="142" fill="#94a3b8" font-size="12">instance_id</text>
+        <text x="50" y="164" fill="#94a3b8" font-size="12">problem_statement</text>
+        <text x="50" y="186" fill="#94a3b8" font-size="11">(what the bug is)</text>
 
-        <text x="44" y="274" fill="white" font-size="12" font-weight="600">Tests to validate:</text>
-        <text x="44" y="300" fill="#94a3b8" font-size="11">FAIL_TO_PASS</text>
-        <text x="56" y="320" fill="#94a3b8" font-size="10">(must pass after fix)</text>
-        <text x="44" y="342" fill="#94a3b8" font-size="11">PASS_TO_PASS</text>
-        <text x="56" y="362" fill="#94a3b8" font-size="10">(must still pass after fix)</text>
+        <text x="50" y="218" fill="#94a3b8" font-size="12">test_patch</text>
+        <text x="50" y="240" fill="#94a3b8" font-size="11">(expected test changes)</text>
 
-        <line x1="30" y1="380" x2="270" y2="380" stroke="#1e293b" stroke-width="0.5" opacity="0.5"/>
+        <line x1="30" y1="262" x2="330" y2="262" stroke="#1e293b" stroke-width="0.5" opacity="0.5"/>
 
-        <text x="44" y="406" fill="#fbbf24" font-size="11" font-weight="600">Control Flags:</text>
-        <text x="44" y="428" fill="#fbbf24" font-size="10">--skip-agent</text>
-        <text x="44" y="446" fill="#fbbf24" font-size="10">--skip-eval</text>
-        <text x="44" y="464" fill="#fbbf24" font-size="10">--patch-path [NEW]</text>
-        <text x="44" y="482" fill="#fbbf24" font-size="10">--synthetic-tests</text>
+        <text x="50" y="292" fill="white" font-size="13" font-weight="600">Tests to validate</text>
 
-        <line x1="30" y1="500" x2="270" y2="500" stroke="#1e293b" stroke-width="0.5" opacity="0.5"/>
+        <text x="50" y="324" fill="#94a3b8" font-size="12">FAIL_TO_PASS</text>
+        <text x="62" y="348" fill="#94a3b8" font-size="11">(tests must pass after fix)</text>
 
-        <text x="44" y="526" fill="#94a3b8" font-size="11">Example tasks:</text>
-        <text x="44" y="548" fill="#94a3b8" font-size="10">django__django-10924</text>
-        <text x="44" y="566" fill="#94a3b8" font-size="10">astropy__astropy-14182</text>
-        <text x="44" y="584" fill="#94a3b8" font-size="10">sympy__sympy-23117</text>
-        <text x="44" y="602" fill="#94a3b8" font-size="10">...</text>
+        <text x="50" y="378" fill="#94a3b8" font-size="12">PASS_TO_PASS</text>
+        <text x="62" y="402" fill="#94a3b8" font-size="11">(tests must still pass after fix)</text>
 
-        <!-- Arrow: Task -> Agent -->
-        <line x1="270" y1="280" x2="350" y2="280"
+        <line x1="30" y1="424" x2="330" y2="424" stroke="#1e293b" stroke-width="0.5" opacity="0.5"/>
+
+        <text x="50" y="454" fill="#fbbf24" font-size="13" font-weight="600">Control Flags</text>
+        <text x="50" y="482" fill="#fbbf24" font-size="12">--skip-agent</text>
+        <text x="50" y="506" fill="#fbbf24" font-size="12">--skip-eval</text>
+        <text x="50" y="530" fill="#fbbf24" font-size="12">--patch-path [NEW]</text>
+        <text x="50" y="554" fill="#fbbf24" font-size="12">--synthetic-tests</text>
+
+        <line x1="30" y1="578" x2="330" y2="578" stroke="#1e293b" stroke-width="0.5" opacity="0.5"/>
+
+        <text x="50" y="608" fill="#94a3b8" font-size="12">Examples:</text>
+        <text x="50" y="634" fill="#94a3b8" font-size="11">django__django-10924</text>
+        <text x="50" y="656" fill="#94a3b8" font-size="11">astropy__astropy-14182</text>
+        <text x="50" y="678" fill="#94a3b8" font-size="11">sympy__sympy-23117</text>
+
+        <!-- ============================================================
+             BOX 2: AGENT (middle top)
+             ============================================================ -->
+        <rect x="390" y="30" width="300" height="360" rx="16"
+              fill="rgba(120, 53, 15, 0.4)" stroke="#fbbf24" stroke-width="3"/>
+        <text x="540" y="66" fill="white" font-size="16" font-weight="600" text-anchor="middle">AGENT</text>
+        <line x1="390" y1="82" x2="690" y2="82" stroke="#fbbf24" stroke-width="0.5" opacity="0.4"/>
+
+        <text x="410" y="112" fill="white" font-size="13" font-weight="600">Aider</text>
+        <text x="410" y="138" fill="#94a3b8" font-size="12">LLM-based coding agent</text>
+
+        <text x="410" y="170" fill="#94a3b8" font-size="12">Reads problem_statement</text>
+        <text x="410" y="194" fill="#94a3b8" font-size="12">Reads CONVENTIONS.md</text>
+        <text x="410" y="218" fill="#94a3b8" font-size="12">Edits files in repo</text>
+        <text x="410" y="242" fill="#94a3b8" font-size="12">Makes git commits</text>
+
+        <line x1="390" y1="260" x2="690" y2="260" stroke="#fb923c" stroke-width="0.5" opacity="0.6"/>
+
+        <text x="410" y="290" fill="white" font-size="13" font-weight="600">Output: Patch</text>
+        <text x="410" y="320" fill="#94a3b8" font-size="12">git diff showing changes</text>
+        <text x="410" y="346" fill="#94a3b8" font-size="11">(which files, what lines)</text>
+
+        <!-- ============================================================
+             BOX 3: JUDGE (middle bottom)
+             ============================================================ -->
+        <rect x="390" y="410" width="300" height="360" rx="16"
+              fill="rgba(76, 29, 149, 0.4)" stroke="#a78bfa" stroke-width="3"/>
+        <text x="540" y="446" fill="white" font-size="16" font-weight="600" text-anchor="middle">JUDGE</text>
+        <line x1="390" y1="462" x2="690" y2="462" stroke="#a78bfa" stroke-width="0.5" opacity="0.4"/>
+
+        <text x="410" y="492" fill="white" font-size="13" font-weight="600">Judge LLM</text>
+        <text x="410" y="518" fill="#94a3b8" font-size="12">Claude / GPT via API</text>
+
+        <text x="410" y="550" fill="#94a3b8" font-size="12">Two-stage evaluation:</text>
+
+        <text x="426" y="578" fill="#94a3b8" font-size="12">Stage 1: Scope adherence</text>
+        <text x="438" y="602" fill="#94a3b8" font-size="11">(does patch touch only</text>
+        <text x="438" y="622" fill="#94a3b8" font-size="11">what it should?)</text>
+
+        <text x="426" y="652" fill="#94a3b8" font-size="12">Stage 2: Diff minimality</text>
+        <text x="438" y="676" fill="#94a3b8" font-size="11">(is patch clean and</text>
+        <text x="438" y="696" fill="#94a3b8" font-size="11">focused?)</text>
+
+        <!-- ============================================================
+             BOX 4: VERDICT (right)
+             ============================================================ -->
+        <rect x="750" y="30" width="320" height="600" rx="16"
+              fill="rgba(6, 78, 59, 0.4)" stroke="#34d399" stroke-width="3"/>
+        <text x="910" y="66" fill="white" font-size="16" font-weight="600" text-anchor="middle">VERDICT</text>
+        <line x1="750" y1="82" x2="1070" y2="82" stroke="#34d399" stroke-width="0.5" opacity="0.4"/>
+
+        <text x="770" y="112" fill="white" font-size="13" font-weight="600">Scores (1-5)</text>
+        <text x="770" y="140" fill="#94a3b8" font-size="12">scope_adherence</text>
+        <text x="770" y="164" fill="#94a3b8" font-size="11">(did patch scope match issue?)</text>
+
+        <text x="770" y="198" fill="#94a3b8" font-size="12">minimality</text>
+        <text x="770" y="222" fill="#94a3b8" font-size="11">(is patch clean & focused?)</text>
+
+        <text x="770" y="256" fill="#94a3b8" font-size="12">diff_clarity</text>
+        <text x="770" y="280" fill="#94a3b8" font-size="11">(is diff clear?)</text>
+
+        <line x1="750" y1="300" x2="1070" y2="300" stroke="#1e293b" stroke-width="0.5" opacity="0.5"/>
+
+        <text x="770" y="330" fill="white" font-size="13" font-weight="600">Final Verdict</text>
+        <text x="770" y="360" fill="#94a3b8" font-size="14">pass</text>
+        <text x="770" y="382" fill="#94a3b8" font-size="12">  (all tests pass, scope OK)</text>
+        <text x="770" y="406" fill="#94a3b8" font-size="14">fail</text>
+        <text x="770" y="428" fill="#94a3b8" font-size="12">  (tests failed or bad scope)</text>
+        <text x="770" y="452" fill="#94a3b8" font-size="14">mixed</text>
+        <text x="770" y="474" fill="#94a3b8" font-size="12">  (partial success)</text>
+
+        <line x1="750" y1="494" x2="1070" y2="494" stroke="#1e293b" stroke-width="0.5" opacity="0.5"/>
+
+        <text x="770" y="524" fill="#34d399" font-size="13" font-weight="600">judge_score</text>
+        <text x="770" y="552" fill="#94a3b8" font-size="11">(float, e.g. 0.85)</text>
+
+        <text x="770" y="584" fill="#94a3b8" font-size="12">rationale</text>
+        <text x="770" y="608" fill="#94a3b8" font-size="11">(why this verdict)</text>
+
+        <text x="770" y="640" fill="#94a3b8" font-size="12">conclusion</text>
+        <text x="770" y="664" fill="#94a3b8" font-size="11">(final summary)</text>
+
+        <!-- ============================================================
+             BOX 5: CONVENTIONS.MD (right side, tall)
+             ============================================================ -->
+        <rect x="1120" y="30" width="260" height="600" rx="16"
+              fill="rgba(251, 191, 36, 0.08)" stroke="#fbbf24" stroke-width="2.5" stroke-dasharray="8,5"/>
+        <text x="1250" y="66" fill="#fbbf24" font-size="16" font-weight="600" text-anchor="middle">CONVENTIONS.md</text>
+        <line x1="1120" y1="82" x2="1380" y2="82" stroke="#fbbf24" stroke-width="0.5" opacity="0.4"/>
+
+        <text x="1140" y="112" fill="white" font-size="13" font-weight="600">Config / Rules</text>
+
+        <text x="1140" y="144" fill="#94a3b8" font-size="12">Coding style</text>
+        <text x="1156" y="166" fill="#94a3b8" font-size="11">(formatting, naming)</text>
+
+        <text x="1140" y="198" fill="#94a3b8" font-size="12">Development rules</text>
+        <text x="1156" y="220" fill="#94a3b8" font-size="11">(how to structure changes)</text>
+
+        <text x="1140" y="252" fill="#94a3b8" font-size="12">Scope guidelines</text>
+        <text x="1156" y="274" fill="#94a3b8" font-size="11">(what to change / not change)</text>
+
+        <line x1="1120" y1="294" x2="1380" y2="294" stroke="#fbbf24" stroke-width="0.5" opacity="0.4"/>
+
+        <text x="1140" y="324" fill="white" font-size="13" font-weight="600">File Location</text>
+        <text x="1140" y="352" fill="#94a3b8" font-size="11">harness/CONVENTIONS.*.md</text>
+
+        <text x="1140" y="384" fill="#94a3b8" font-size="12">Baseline variant</text>
+        <text x="1156" y="406" fill="#94a3b8" font-size="11">(default rules)</text>
+
+        <text x="1140" y="436" fill="#94a3b8" font-size="12">Candidate variants</text>
+        <text x="1156" y="458" fill="#94a3b8" font-size="11">(experimental rules to test)</text>
+
+        <line x1="1120" y1="478" x2="1380" y2="478" stroke="#fbbf24" stroke-width="0.5" opacity="0.4"/>
+
+        <text x="1140" y="508" fill="white" font-size="13" font-weight="600">Purpose</text>
+        <text x="1140" y="538" fill="#94a3b8" font-size="11">Compare baseline vs</text>
+        <text x="1140" y="558" fill="#94a3b8" font-size="11">candidate conventions</text>
+        <text x="1140" y="578" fill="#94a3b8" font-size="11">to measure impact on</text>
+        <text x="1140" y="598" fill="#94a3b8" font-size="11">agent patch quality</text>
+
+        <text x="1140" y="630" fill="#fbbf24" font-size="12">Read by agent before</text>
+        <text x="1140" y="652" fill="#fbbf24" font-size="12">generating any code</text>
+
+        <!-- ============================================================
+             BOX 6: TEST RESULTS (right side, below)
+             ============================================================ -->
+        <rect x="1120" y="660" width="260" height="180" rx="16"
+              fill="rgba(76, 29, 149, 0.15)" stroke="#a78bfa" stroke-width="2" stroke-dasharray="6,4"/>
+        <text x="1250" y="696" fill="#a78bfa" font-size="14" font-weight="600" text-anchor="middle">Test Results</text>
+        <line x1="1120" y1="712" x2="1380" y2="712" stroke="#a78bfa" stroke-width="0.5" opacity="0.4"/>
+
+        <text x="1140" y="740" fill="#94a3b8" font-size="12">SWE-bench Eval (Docker)</text>
+        <text x="1140" y="764" fill="#94a3b8" font-size="12">FAIL_TO_PASS: X / Y passed</text>
+        <text x="1140" y="788" fill="#94a3b8" font-size="12">PASS_TO_PASS: X / Y passed</text>
+
+        <text x="1140" y="818" fill="#fb923c" font-size="11">Used by --skip-eval</text>
+        <text x="1140" y="838" fill="#fb923c" font-size="11">--synthetic-tests overrides</text>
+
+        <!-- ============================================================
+             ARROWS
+             ============================================================ -->
+
+        <!-- Arrow: TASK -> AGENT -->
+        <line x1="330" y1="210" x2="388" y2="210"
+              stroke="#22d3ee" stroke-width="4" marker-end="url(#arr)"/>
+        <text x="360" y="196" fill="#94a3b8" font-size="12">problem_statement</text>
+
+        <!-- Arrow: AGENT -> VERDICT -->
+        <line x1="690" y1="210" x2="748" y2="210"
+              stroke="#fbbf24" stroke-width="4" marker-end="url(#arr-a)"/>
+        <text x="720" y="196" fill="#fbbf24" font-size="12">patch</text>
+
+        <!-- Arrow: TASK -> JUDGE (below) -->
+        <line x1="180" y1="630" x2="180" y2="660"
               stroke="#22d3ee" stroke-width="3" marker-end="url(#arr)"/>
-        <text x="310" y="266" fill="#94a3b8" font-size="11">problem_statement</text>
-        <text x="310" y="298" fill="#94a3b8" font-size="11">+ CONVENTIONS.md</text>
+        <line x1="180" y1="660" x2="390" y2="660"
+              stroke="#22d3ee" stroke-width="3" marker-end="url(#arr)"/>
+        <line x1="390" y1="660" x2="390" y2="640"
+              stroke="#22d3ee" stroke-width="3"/>
+        <text x="280" y="678" fill="#94a3b8" font-size="11">FAIL_TO_PASS tests</text>
 
-        <!-- ============================================================
-             BOX 2: AGENT
-             ============================================================ -->
-        <rect x="360" y="120" width="240" height="320" rx="14"
-              fill="rgba(120, 53, 15, 0.4)" stroke="#fbbf24" stroke-width="2.5"/>
-        <text x="480" y="154" fill="white" font-size="14" font-weight="600" text-anchor="middle">AGENT</text>
-        <line x1="360" y1="168" x2="600" y2="168" stroke="#fbbf24" stroke-width="0.5" opacity="0.4"/>
+        <!-- Arrow: CONVENTIONS -> AGENT (dashed) -->
+        <path d="M 1120 330 Q 860 330 860 280 Q 860 200 600 200"
+              fill="none" stroke="#fbbf24" stroke-width="2.5"
+              stroke-dasharray="8,5" marker-end="url(#arr-a)" opacity="0.7"/>
+        <text x="990" y="250" fill="#fbbf24" font-size="11">guides style</text>
 
-        <text x="374" y="194" fill="white" font-size="12" font-weight="600">Aider</text>
-        <text x="374" y="216" fill="#94a3b8" font-size="11">LLM-based coding agent</text>
-        <text x="374" y="238" fill="#94a3b8" font-size="11">Reads problem_statement</text>
-        <text x="374" y="258" fill="#94a3b8" font-size="11">Reads CONVENTIONS.md</text>
-        <text x="374" y="278" fill="#94a3b8" font-size="11">Edits files in repo</text>
-        <text x="374" y="298" fill="#94a3b8" font-size="11">Makes git commits</text>
-
-        <line x1="360" y1="316" x2="600" y2="316" stroke="#1e293b" stroke-width="0.5" opacity="0.5"/>
-
-        <text x="374" y="342" fill="white" font-size="12" font-weight="600">Output: Patch</text>
-        <text x="374" y="366" fill="#94a3b8" font-size="11">git diff showing all changes</text>
-        <text x="374" y="386" fill="#94a3b8" font-size="11">(which files changed, how)</text>
-
-        <line x1="360" y1="404" x2="600" y2="404" stroke="#fb923c" stroke-width="0.5" opacity="0.6"/>
-
-        <text x="374" y="430" fill="#fb923c" font-size="11">If no patch: retry once</text>
-        <text x="374" y="452" fill="#fb923c" font-size="11">Phase: aider_retry</text>
-
-        <!-- Arrow: Agent -> Judge -->
-        <line x1="600" y1="280" x2="680" y2="280"
-              stroke="#fbbf24" stroke-width="3" marker-end="url(#arr-a)"/>
-        <text x="640" y="266" fill="#fbbf24" font-size="11">patch</text>
-        <text x="640" y="298" fill="#94a3b8" font-size="11">agent_stdout</text>
-        <text x="640" y="316" fill="#94a3b8" font-size="11">agent_stderr</text>
-
-        <!-- ============================================================
-             BOX 3: JUDGE
-             ============================================================ -->
-        <rect x="690" y="120" width="320" height="320" rx="14"
-              fill="rgba(76, 29, 149, 0.4)" stroke="#a78bfa" stroke-width="2.5"/>
-        <text x="850" y="154" fill="white" font-size="14" font-weight="600" text-anchor="middle">JUDGE</text>
-        <line x1="690" y1="168" x2="1010" y2="168" stroke="#a78bfa" stroke-width="0.5" opacity="0.4"/>
-
-        <text x="704" y="194" fill="white" font-size="12" font-weight="600">Judge LLM</text>
-        <text x="704" y="216" fill="#94a3b8" font-size="11">Claude / GPT via API</text>
-        <text x="704" y="238" fill="#94a3b8" font-size="11">Two-stage evaluation:</text>
-        <text x="718" y="260" fill="#94a3b8" font-size="11">Stage 1: Scope adherence</text>
-        <text x="718" y="280" fill="#94a3b8" font-size="11">  (does patch touch only what it should?)</text>
-        <text x="718" y="300" fill="#94a3b8" font-size="11">Stage 2: Diff minimality</text>
-        <text x="718" y="320" fill="#94a3b8" font-size="11">  (is patch clean and focused?)</text>
-
-        <line x1="690" y1="338" x2="1010" y2="338" stroke="#1e293b" stroke-width="0.5" opacity="0.5"/>
-
-        <text x="704" y="364" fill="white" font-size="12" font-weight="600">Inputs given to Judge:</text>
-        <text x="704" y="386" fill="#94a3b8" font-size="11">problem_statement</text>
-        <text x="704" y="406" fill="#94a3b8" font-size="11">patch (diff)</text>
-        <text x="704" y="426" fill="#94a3b8" font-size="11">tests (FAIL_TO_PASS)</text>
-
-        <!-- ============================================================
-             VERDICT
-             ============================================================ -->
-        <rect x="690" y="460" width="320" height="140" rx="14"
-              fill="rgba(6, 78, 59, 0.4)" stroke="#34d399" stroke-width="2.5"/>
-        <text x="850" y="494" fill="white" font-size="14" font-weight="600" text-anchor="middle">VERDICT</text>
-        <line x1="690" y1="508" x2="1010" y2="508" stroke="#34d399" stroke-width="0.5" opacity="0.4"/>
-
-        <text x="704" y="534" fill="#94a3b8" font-size="11">scope_adherence (1-5)</text>
-        <text x="704" y="554" fill="#94a3b8" font-size="11">minimality (1-5)</text>
-        <text x="704" y="574" fill="#94a3b8" font-size="11">diff_clarity (1-5)</text>
-        <text x="704" y="594" fill="#94a3b8" font-size="11">verdict: pass | fail | mixed</text>
-
-        <!-- ============================================================
-             SIDE PANELS: .md FILES
-             ============================================================ -->
-
-        <!-- CONVENTIONS.MD -->
-        <rect x="30" y="560" width="240" height="110" rx="10"
-              fill="rgba(251, 191, 36, 0.1)" stroke="#fbbf24" stroke-width="2" stroke-dasharray="6,4"/>
-        <text x="150" y="586" fill="#fbbf24" font-size="12" font-weight="600" text-anchor="middle">CONVENTIONS.md</text>
-        <line x1="30" y1="596" x2="270" y2="596" stroke="#fbbf24" stroke-width="0.5" opacity="0.4"/>
-        <text x="44" y="616" fill="#94a3b8" font-size="10">Coding style + rules</text>
-        <text x="44" y="632" fill="#94a3b8" font-size="10">File: harness/CONVENTIONS.*.md</text>
-        <text x="44" y="648" fill="#94a3b8" font-size="10">Baseline vs Candidate variants</text>
-
-        <!-- Arrow: CONVENTIONS -> Agent -->
-        <path d="M 150 558 L 150 480 Q 150 440 480 440 L 480 378"
-              fill="none" stroke="#fbbf24" stroke-width="1.5"
-              stroke-dasharray="5,3" marker-end="url(#arr-a)" opacity="0.6"/>
-        <text x="300" y="450" fill="#fbbf24" font-size="9">guides agent style</text>
-
-        <!-- TEST RESULTS (below Judge) -->
-        <rect x="360" y="460" width="320" height="110" rx="10"
-              fill="rgba(76, 29, 149, 0.2)" stroke="#a78bfa" stroke-width="1.5" stroke-dasharray="5,3"/>
-        <text x="520" y="486" fill="#a78bfa" font-size="12" font-weight="600" text-anchor="middle">Test Results (SWE-bench Eval)</text>
-        <line x1="360" y1="496" x2="680" y2="496" stroke="#a78bfa" stroke-width="0.5" opacity="0.4"/>
-        <text x="374" y="516" fill="#94a3b8" font-size="10">FAIL_TO_PASS: X/Y passed</text>
-        <text x="374" y="532" fill="#94a3b8" font-size="10">PASS_TO_PASS: X/Y passed</text>
-        <text x="374" y="552" fill="#fb923c" font-size="9">Optional: --skip-eval uses these</text>
-        <text x="374" y="568" fill="#fb923c" font-size="9">--synthetic-tests overrides these</text>
+        <!-- Arrow: TEST RESULTS -> VERDICT (down to verdict) -->
+        <path d="M 1250 658 L 1250 620 Q 1250 600 1070 600 L 1070 580"
+              fill="none" stroke="#a78bfa" stroke-width="2.5"
+              stroke-dasharray="6,4" marker-end="url(#arr)" opacity="0.7"/>
+        <text x="1280" y="640" fill="#a78bfa" font-size="11">test results</text>
 
         <!-- ============================================================
              LEGEND
              ============================================================ -->
-        <rect x="30" y="700" width="980" height="60" rx="10"
-              fill="rgba(15, 23, 42, 0.5)" stroke="#1e293b" stroke-width="1"/>
-        <text x="50" y="724" fill="white" font-size="11" font-weight="600">Legend</text>
+        <rect x="30" y="800" width="1350" height="72" rx="12"
+              fill="rgba(15, 23, 42, 0.5)" stroke="#1e293b" stroke-width="1.5"/>
+        <text x="54" y="826" fill="white" font-size="12" font-weight="600">Legend</text>
 
-        <rect x="50" y="738" width="16" height="12" rx="2" fill="rgba(8, 51, 68, 0.5)" stroke="#22d3ee" stroke-width="1.5"/>
-        <text x="74" y="748" fill="#94a3b8" font-size="10">Task Input</text>
+        <rect x="54" y="840" width="20" height="15" rx="3" fill="rgba(8, 51, 68, 0.5)" stroke="#22d3ee" stroke-width="1.5"/>
+        <text x="82" y="852" fill="#94a3b8" font-size="11">Task Input</text>
 
-        <rect x="160" y="738" width="16" height="12" rx="2" fill="rgba(120, 53, 15, 0.4)" stroke="#fbbf24" stroke-width="1.5"/>
-        <text x="184" y="748" fill="#94a3b8" font-size="10">Agent</text>
+        <rect x="170" y="840" width="20" height="15" rx="3" fill="rgba(120, 53, 15, 0.4)" stroke="#fbbf24" stroke-width="1.5"/>
+        <text x="198" y="852" fill="#94a3b8" font-size="11">Agent</text>
 
-        <rect x="260" y="738" width="16" height="12" rx="2" fill="rgba(76, 29, 149, 0.4)" stroke="#a78bfa" stroke-width="1.5"/>
-        <text x="284" y="748" fill="#94a3b8" font-size="10">Judge</text>
+        <rect x="270" y="840" width="20" height="15" rx="3" fill="rgba(76, 29, 149, 0.4)" stroke="#a78bfa" stroke-width="1.5"/>
+        <text x="298" y="852" fill="#94a3b8" font-size="11">Judge</text>
 
-        <rect x="360" y="738" width="16" height="12" rx="2" fill="rgba(6, 78, 59, 0.4)" stroke="#34d399" stroke-width="1.5"/>
-        <text x="384" y="748" fill="#94a3b8" font-size="10">Verdict / Output</text>
+        <rect x="370" y="840" width="20" height="15" rx="3" fill="rgba(6, 78, 59, 0.4)" stroke="#34d399" stroke-width="1.5"/>
+        <text x="398" y="852" fill="#94a3b8" font-size="11">Verdict</text>
 
-        <rect x="510" y="738" width="16" height="12" rx="2" fill="rgba(251, 191, 36, 0.1)" stroke="#fbbf24" stroke-width="1.5" stroke-dasharray="3,2"/>
-        <text x="534" y="748" fill="#94a3b8" font-size="10">Config (.md)</text>
+        <rect x="490" y="840" width="20" height="15" rx="3" fill="rgba(251, 191, 36, 0.08)" stroke="#fbbf24" stroke-width="1.5" stroke-dasharray="4,3"/>
+        <text x="518" y="852" fill="#94a3b8" font-size="11">Conventions (.md)</text>
 
-        <line x1="640" y1="744" x2="660" y2="744" stroke="#fbbf24" stroke-width="2.5" marker-end="url(#arr-a)"/>
-        <text x="668" y="748" fill="#94a3b8" font-size="10">Data to Judge</text>
+        <line x1="660" y1="847" x2="686" y2="847" stroke="#fbbf24" stroke-width="3" marker-end="url(#arr-a)"/>
+        <text x="694" y="852" fill="#94a3b8" font-size="11">Patch to Judge</text>
 
-        <line x1="790" y1="744" x2="810" y2="744" stroke="#22d3ee" stroke-width="2.5" marker-end="url(#arr)"/>
-        <text x="818" y="748" fill="#94a3b8" font-size="10">Task to Agent</text>
+        <line x1="830" y1="847" x2="856" y2="847" stroke="#22d3ee" stroke-width="3" marker-end="url(#arr)"/>
+        <text x="864" y="852" fill="#94a3b8" font-size="11">Task to Agent</text>
 
-        <line x1="950" y1="744" x2="970" y2="744" stroke="#34d399" stroke-width="2.5" marker-end="url(#arr-e)"/>
-        <text x="836" y="748" fill="#94a3b8" font-size="10">Verdict</text>
+        <line x1="1000" y1="847" x2="1026" y2="847" stroke="#34d399" stroke-width="3" marker-end="url(#arr-e)"/>
+        <text x="1034" y="852" fill="#94a3b8" font-size="11">Verdict Output</text>
 
       </svg>
     </div>
@@ -277,14 +348,14 @@
       <div class="card">
         <div class="card-header">
           <div class="card-dot amber"></div>
-          <h3>Step 2: .md (Conventions)</h3>
+          <h3>Step 2: CONVENTIONS.md</h3>
         </div>
         <ul>
-          <li>• CONVENTIONS.md guides agent behavior</li>
-          <li>• Baseline: default coding rules</li>
+          <li>• Guides agent behavior with coding rules</li>
+          <li>• Baseline: default coding style</li>
           <li>• Candidate: experimental rules to test</li>
-          <li>• Different variants in harness/CONVENTIONS.*.md</li>
-          <li>• Compared in experiments (baseline vs candidate)</li>
+          <li>• Located in harness/CONVENTIONS.*.md</li>
+          <li>• Compared in experiments</li>
         </ul>
       </div>
 
@@ -297,7 +368,7 @@
           <li>• Judge LLM evaluates the patch</li>
           <li>• Two-stage: scope + minimality</li>
           <li>• Separates infra failures from real failures</li>
-          <li>• SWE-bench eval runs actual test suite in Docker</li>
+          <li>• SWE-bench eval runs actual tests in Docker</li>
           <li>• Verdict: pass / fail / mixed</li>
         </ul>
       </div>

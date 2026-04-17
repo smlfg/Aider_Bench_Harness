@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { fetchTasks, fetchConventions, launchRun, Task, Convention } from '../lib/api';
+import { fetchTasks, fetchConventions, launchRun } from '../lib/api';
+import type { Task, Convention } from '../lib/api';
 import { useNavigate } from 'react-router-dom';
 import { Play, Loader2 } from 'lucide-react';
 

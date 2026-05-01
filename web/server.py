@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import argparse
+import asyncio
 import json
 import os
+import re
 import signal
 import sqlite3
 import subprocess
@@ -14,10 +16,12 @@ from pathlib import Path
 from typing import Any
 
 from fastapi import FastAPI, HTTPException
-from fastapi.responses import HTMLResponse, PlainTextResponse
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import HTMLResponse, PlainTextResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from sse_starlette.sse import EventSourceResponse
+from typing import Any
 
 from runner.config import load_config
 from runner.db import (
@@ -32,11 +36,34 @@ from runner.db import (
 from runner.run_once import is_infrastructure_error
 from runner.paths import DATA_DIR, HARNESS_DIR, RESULTS_DIR, ensure_project_dirs
 
+
+class NoCacheStaticFiles(StaticFiles):
+    """StaticFiles that tells browsers to never cache."""
+
+    async def get_response(self, path: str, scope: dict[str, Any]) -> Response:
+        resp: Response = await super().get_response(path, scope)
+        resp.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+        resp.headers["Pragma"] = "no-cache"
+        resp.headers["Expires"] = "0"
+        return resp
+
+
 app = FastAPI(title="Harness Dashboard")
 
-STATIC_DIR = Path(__file__).resolve().parent / "static"
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+STATIC_DIR = Path(__file__).resolve().parent / "frontend" / "dist"
+VIZ_STATIC_DIR = Path(__file__).resolve().parent / "static"
+app.mount("/assets", NoCacheStaticFiles(directory=str(STATIC_DIR / "assets")), name="assets")
+app.mount("/viz-static", NoCacheStaticFiles(directory=str(VIZ_STATIC_DIR)), name="viz-static")
 DB_PATH = RESULTS_DIR / "experiment.db"
-MAX_ACTIVE_RUNS = 10
+MAX_ACTIVE_RUNS = 100
 ACTIVE_REGISTRY_STATUSES = {"starting", "running", "judging"}
 TERMINAL_REGISTRY_STATUSES = {
     "completed",
@@ -48,6 +75,7 @@ TERMINAL_REGISTRY_STATUSES = {
 
 _launch_lock = threading.Lock()
 _launch_processes: dict[str, subprocess.Popen[Any]] = {}
+_running_pids: dict[str, subprocess.Popen[Any]] = {}
 
 
 class LaunchRequest(BaseModel):
@@ -129,7 +157,10 @@ def _resolve_terminal_status(
     had_pid: bool,
 ) -> str:
     if run_row is not None:
-        if int(run_row["task_success"]) == 1 and int(run_row["infrastructure_error"]) == 0:
+        if (
+            int(run_row["task_success"]) == 1
+            and int(run_row["infrastructure_error"]) == 0
+        ):
             return "completed"
         if int(run_row["infrastructure_error"]) == 1:
             return "failed"
@@ -363,6 +394,14 @@ async def index():
     return (STATIC_DIR / "index.html").read_text(encoding="utf-8")
 
 
+@app.get("/results-visualizer", response_class=HTMLResponse)
+async def results_visualizer():
+    page = VIZ_STATIC_DIR / "results.html"
+    if not page.exists():
+        raise HTTPException(404, "results.html not found")
+    return page.read_text(encoding="utf-8")
+
+
 @app.get("/api/runs")
 async def api_runs(iteration: int | None = None, condition: str | None = None):
     conn = _db()
@@ -430,7 +469,9 @@ async def api_run_detail(run_id: str):
                 result.setdefault("phase", registry.get("phase"))
                 result.setdefault("status", registry.get("status"))
                 result.setdefault("active", registry.get("active"))
-            art_dir = Path(result["artifacts_dir"]) if result.get("artifacts_dir") else None
+            art_dir = (
+                Path(result["artifacts_dir"]) if result.get("artifacts_dir") else None
+            )
             if art_dir and art_dir.exists():
                 for fname in (
                     "agent_stdout.log",
@@ -450,7 +491,9 @@ async def api_run_detail(run_id: str):
                             judge_path.read_text(encoding="utf-8")
                         )
                     except Exception:
-                        result["judge_result_error"] = "Unable to parse judge_result.json"
+                        result["judge_result_error"] = (
+                            "Unable to parse judge_result.json"
+                        )
                 phase_path = art_dir / ".phase"
                 if phase_path.exists():
                     result["phase"] = phase_path.read_text(encoding="utf-8").strip()
@@ -588,6 +631,140 @@ async def api_log_stream(run_id: str, stream: str):
                 yield {"event": "full", "data": content}
         else:
             yield {"event": "full", "data": f"(file not found: {fname})"}
+
+    return EventSourceResponse(event_generator())
+
+
+# ── Live Run Stream (SSE) ─────────────────────────────────────────────────────
+
+
+TERMINAL_PHASES = {"done", "error", "aider_retry"}
+POLL_INTERVAL = 2.0  # seconds
+
+# Token patterns found in Aider output
+_TOKEN_RE = re.compile(
+    r"Tokens?:\s*([\d,]+)\s*(?:sent|Sent|in)[\s,]*([\d,]+)\s*(?:received|Rec|out)",
+    re.IGNORECASE,
+)
+_TOKEN_RE2 = re.compile(
+    r"(\d[\d,]*)\s+(?:tokens?\s+)?(?:in|input)\s*(?:/\s*)?(\d[\d,]*)\s+(?:tokens?\s+)?(?:out|output)",
+    re.IGNORECASE,
+)
+
+
+def _parse_tokens_from_log(content: str) -> dict[str, int] | None:
+    """Extract token counts from Aider log content. Returns None if nothing found."""
+    for pattern in (_TOKEN_RE, _TOKEN_RE2):
+        m = pattern.search(content)
+        if m:
+            sent = int(m.group(1).replace(",", ""))
+            recv = int(m.group(2).replace(",", ""))
+            return {"tokens_in": sent, "tokens_out": recv}
+    return None
+
+
+def _read_lines_since(path: Path, last_pos: int) -> tuple[list[str], int]:
+    """Read new lines from path starting at last byte offset. Returns (lines, new_pos)."""
+    if not path.exists():
+        return [], last_pos
+    size = path.stat().st_size
+    if size <= last_pos:
+        return [], last_pos
+    try:
+        with open(path, "r", encoding="utf-8", errors="replace") as fh:
+            fh.seek(last_pos)
+            raw = fh.read()
+            lines = raw.splitlines()
+            new_pos = fh.tell()
+        return lines, new_pos
+    except (OSError, ValueError):
+        return [], last_pos
+
+
+def _diff_stats_from_patch(patch_text: str) -> dict[str, int]:
+    files = len(re.findall(r"^\+\+\+ b/", patch_text, re.MULTILINE))
+    added = len(re.findall(r"^\+[^+]", patch_text, re.MULTILINE))
+    removed = len(re.findall(r"^-[^-]", patch_text, re.MULTILINE))
+    return {"files_changed": files, "lines_added": added, "lines_removed": removed}
+
+
+@app.get("/api/runs/{run_id}/stream")
+async def api_run_stream(run_id: str):
+    """
+    Server-Sent Events stream for a running experiment.
+    Events: phase, log, patch_changed, tokens, done
+    """
+    art_dir = _find_artifacts_dir_for_run(run_id)
+    if art_dir is None:
+        raise HTTPException(404, f"Run {run_id} not found")
+
+    stdout_path = art_dir / "agent_stdout.log"
+    stderr_path = art_dir / "agent_stderr.log"
+    patch_path = art_dir / "git_diff.patch"
+    phase_path = art_dir / ".phase"
+
+    stdout_pos = 0
+    stderr_pos = 0
+    last_patch_mtime = 0.0
+    last_phase = ""
+    last_tokens: dict[str, int] | None = None
+    done_sent = False
+
+    async def event_generator():
+        nonlocal stdout_pos, stderr_pos, last_patch_mtime, last_phase, last_tokens, done_sent
+
+        while True:
+            await asyncio.sleep(POLL_INTERVAL)
+
+            # ── Phase ──────────────────────────────────────────────────────
+            phase = _read_phase(artifacts_dir=art_dir)
+            if phase != last_phase:
+                last_phase = phase
+                yield {"event": "phase", "data": json.dumps({"phase": phase})}
+                if phase in TERMINAL_PHASES:
+                    # ── Final done event ───────────────────────────────────
+                    done_payload: dict[str, Any] = {"phase": phase}
+                    run_meta = _read_json(artifacts_dir / "run_meta.json")
+                    if run_meta:
+                        done_payload.update({
+                            "exit_code": run_meta.get("exit_code", 0),
+                            "task_success": bool(run_meta.get("task_success")),
+                            "infrastructure_error": bool(run_meta.get("infrastructure_error")),
+                            "tests_passed": run_meta.get("tests_passed", 0),
+                            "tests_total": run_meta.get("tests_total", 0),
+                        })
+                    yield {"event": "done", "data": json.dumps(done_payload)}
+                    done_sent = True
+                    break
+
+            # ── Stdout log lines ──────────────────────────────────────────
+            lines, stdout_pos = _read_lines_since(stdout_path, stdout_pos)
+            for line in lines:
+                yield {"event": "log", "data": json.dumps({"source": "stdout", "line": line})}
+                # Try parse tokens from accumulated content
+                if last_tokens is None and _TOKEN_RE.search(line):
+                    parsed = _parse_tokens_from_log(line)
+                    if parsed:
+                        last_tokens = parsed
+                        yield {"event": "tokens", "data": json.dumps(parsed)}
+
+            # ── Stderr log lines ──────────────────────────────────────────
+            lines, stderr_pos = _read_lines_since(stderr_path, stderr_pos)
+            for line in lines:
+                yield {"event": "log", "data": json.dumps({"source": "stderr", "line": line})}
+
+            # ── Patch changed ─────────────────────────────────────────────
+            if patch_path.exists():
+                mtime = patch_path.stat().st_mtime
+                if mtime > last_patch_mtime:
+                    last_patch_mtime = mtime
+                    try:
+                        patch_text = patch_path.read_text(encoding="utf-8", errors="replace")
+                    except OSError:
+                        patch_text = ""
+                    stats = _diff_stats_from_patch(patch_text)
+                    stats["patch"] = patch_text
+                    yield {"event": "patch_changed", "data": json.dumps(stats)}
 
     return EventSourceResponse(event_generator())
 
@@ -1006,6 +1183,783 @@ async def api_delete_run(run_id: str):
         delete_run_registry_row(conn, run_id)
         conn.commit()
     return {"status": "deleted", "run_id": run_id}
+
+
+@app.post("/api/runs/{run_id}/judge")
+async def api_judge_run(run_id: str):
+    art_dir = _find_artifacts_dir_for_run(run_id)
+    if art_dir is None:
+        raise HTTPException(404, f"Run {run_id} not found")
+
+    judge_result_path = art_dir / "judge_result.json"
+    if judge_result_path.exists():
+        with _db() as conn:
+            row = conn.execute(
+                "SELECT judge_score FROM runs WHERE run_id = ?", (run_id,)
+            ).fetchone()
+            if row and row["judge_score"] is not None:
+                raise HTTPException(409, f"Judge result already exists for {run_id}")
+
+    judge_input_path = art_dir / "judge_input.json"
+    if not judge_input_path.exists():
+        raise HTTPException(
+            422, f"Missing judge_input.json — run may still be in progress"
+        )
+
+    cmd = [
+        sys.executable,
+        "-m",
+        "runner.judge",
+        "--artifacts-dir",
+        str(art_dir),
+    ]
+
+    try:
+        proc = subprocess.run(
+            cmd,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            timeout=300,
+        )
+    except subprocess.TimeoutExpired:
+        raise HTTPException(504, f"Judge timed out for {run_id}")
+
+    if proc.returncode != 0:
+        raise HTTPException(500, f"Judge failed: {proc.stderr[:500]}")
+
+    if not judge_result_path.exists():
+        raise HTTPException(500, f"Judge completed but no judge_result.json written")
+
+    with _db() as conn:
+        row = conn.execute(
+            "SELECT judge_score FROM runs WHERE run_id = ?", (run_id,)
+        ).fetchone()
+
+    return {
+        "run_id": run_id,
+        "status": "judged",
+        "judge_score": float(row["judge_score"])
+        if row and row["judge_score"] is not None
+        else None,
+    }
+
+
+# ── Experiment endpoints ─────────────────────────────────────────────
+
+
+import re as _re
+
+_experiment_store: dict[str, dict[str, Any]] = {}
+
+
+def _parse_sections(md_path: Path) -> list[dict[str, Any]]:
+    content = md_path.read_text(encoding="utf-8")
+    pattern = _re.compile(r"^## §(\d+): (.+?)$", _re.MULTILINE)
+    sections = []
+    for m in pattern.finditer(content):
+        num = int(m.group(1))
+        title = m.group(2).strip()
+        start = m.end()
+        next_m = pattern.search(content, m.end())
+        end = next_m.start() if next_m else len(content)
+        text = content[start:end].strip()
+        text = _re.sub(r"^---\n", "", text).strip()
+        sections.append({"num": num, "title": title, "text": text})
+    return sections
+
+
+def _build_cumulative_md(
+    base_content: str, sections: list[dict[str, Any]], up_to: int
+) -> str:
+    parts = [base_content.rstrip()]
+    for s in sections[:up_to]:
+        parts.append(f"\n\n## §{s['num']}: {s['title']}\n{s['text']}\n\n---")
+    return "\n".join(parts) + "\n"
+
+
+class ExperimentRequest(BaseModel):
+    task_ids: list[str]
+    base_md: str = "CONVENTIONS.baseline.md"
+    target_md: str = "KarparthysClaude.md"
+    parts: int = 4
+    reps_per_part: int = 5
+    parallel: int = 10
+
+
+@app.post("/api/experiment")
+async def api_create_experiment(req: ExperimentRequest):
+    init_db()
+    base_path = HARNESS_DIR / req.base_md
+    target_path = HARNESS_DIR / req.target_md
+    if not base_path.exists():
+        raise HTTPException(400, f"Base .md not found: {req.base_md}")
+    if not target_path.exists():
+        raise HTTPException(400, f"Target .md not found: {req.target_md}")
+
+    base_content = base_path.read_text(encoding="utf-8")
+    sections = _parse_sections(target_path)
+    if not sections:
+        raise HTTPException(400, f"No §-sections found in {req.target_md}")
+
+    total_sections = len(sections)
+    exp_id = f"exp_{int(time.time())}"
+
+    conditions = [
+        {"condition_id": "baseline", "md_path": str(base_path), "sections": 0}
+    ]
+    for i in range(1, req.parts + 1):
+        up_to = max(1, round(total_sections * i / req.parts))
+        up_to = min(up_to, total_sections)
+        cond_id = f"iter_P{i:02d}"
+        md_content = _build_cumulative_md(base_content, sections, up_to)
+        md_filename = f"CONVENTIONS.{cond_id}.md"
+        md_file = HARNESS_DIR / md_filename
+        md_file.write_text(md_content, encoding="utf-8")
+        conditions.append(
+            {
+                "condition_id": cond_id,
+                "md_path": str(md_file),
+                "sections": up_to,
+            }
+        )
+
+    total_runs = len(conditions) * len(req.task_ids) * req.reps_per_part
+    plan = {
+        "exp_id": exp_id,
+        "task_ids": req.task_ids,
+        "base_md": req.base_md,
+        "target_md": req.target_md,
+        "parts": req.parts,
+        "reps_per_part": req.reps_per_part,
+        "parallel": min(req.parallel, MAX_ACTIVE_RUNS),
+        "conditions": conditions,
+        "total_sections": total_sections,
+        "total_runs": total_runs,
+        "status": "created",
+        "launched_runs": [],
+        "created_ts": _utc_now(),
+    }
+    _experiment_store[exp_id] = plan
+    return plan
+
+
+@app.post("/api/experiment/{exp_id}/start")
+async def api_start_experiment(exp_id: str):
+    if exp_id not in _experiment_store:
+        raise HTTPException(404, f"Experiment {exp_id} not found")
+    plan = _experiment_store[exp_id]
+    if plan["status"] == "running":
+        raise HTTPException(409, "Experiment already running")
+    plan["status"] = "running"
+
+    config = load_config()
+    launched = []
+    errors = []
+
+    for cond in plan["conditions"]:
+        for task_id in plan["task_ids"]:
+            for run_idx in range(1, plan["reps_per_part"] + 1):
+                clean_task = task_id.replace("/", "__")
+                run_id = f"{cond['condition_id']}_{clean_task}_run{run_idx:02d}"
+                artifacts_dir = RESULTS_DIR / cond["condition_id"] / task_id / run_id
+                artifacts_dir.mkdir(parents=True, exist_ok=True)
+                now = _utc_now()
+
+                with _launch_lock:
+                    with _db() as conn:
+                        active_rows = _active_registry_rows(conn)
+                        if len(active_rows) >= MAX_ACTIVE_RUNS:
+                            errors.append({"run_id": run_id, "error": "active_run_cap"})
+                            continue
+                        upsert_run_registry(
+                            conn,
+                            {
+                                "run_id": run_id,
+                                "task_id": task_id,
+                                "condition_id": cond["condition_id"],
+                                "iteration": 1,
+                                "model_name": config.aider_model,
+                                "conventions_path": cond["md_path"],
+                                "status": "starting",
+                                "pid": None,
+                                "artifacts_dir": str(artifacts_dir),
+                                "start_ts": now,
+                                "updated_ts": now,
+                                "last_phase": "starting",
+                                "error_detail": None,
+                                "terminal_ts": None,
+                            },
+                        )
+
+                cmd = [
+                    sys.executable,
+                    "-m",
+                    "runner.run_once",
+                    "--task-id",
+                    task_id,
+                    "--condition",
+                    cond["condition_id"],
+                    "--iteration",
+                    "1",
+                    "--run-index",
+                    str(run_idx),
+                    "--conventions-path",
+                    cond["md_path"],
+                ]
+
+                try:
+                    proc = subprocess.Popen(
+                        cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
+                    )
+                except Exception as exc:
+                    errors.append({"run_id": run_id, "error": str(exc)})
+                    with _launch_lock:
+                        with _db() as conn:
+                            update_run_registry(
+                                conn,
+                                run_id,
+                                status="failed_to_start",
+                                updated_ts=_utc_now(),
+                                terminal_ts=_utc_now(),
+                            )
+                    continue
+
+                with _launch_lock:
+                    _launch_processes[run_id] = proc
+                    with _db() as conn:
+                        update_run_registry(
+                            conn,
+                            run_id,
+                            pid=proc.pid,
+                            status="running",
+                            updated_ts=_utc_now(),
+                            last_phase="starting",
+                        )
+
+                _run_cleanup_thread(proc, run_id, artifacts_dir)
+                launched.append(run_id)
+
+    plan["launched_runs"] = launched
+    plan["errors"] = errors
+    return {
+        "exp_id": exp_id,
+        "launched": len(launched),
+        "errors": len(errors),
+        "run_ids": launched,
+    }
+
+
+def _run_cleanup_thread(
+    proc: subprocess.Popen, run_id: str, artifacts_dir: Path
+) -> None:
+    def _cleanup():
+        proc.wait()
+        with _launch_lock:
+            _launch_processes.pop(run_id, None)
+            with _db() as conn:
+                row = fetch_run_registry_row(conn, run_id)
+                if row is None:
+                    return
+                reconciled = _reconcile_registry_row_locked(conn, row)
+                if reconciled.get("status") in ACTIVE_REGISTRY_STATUSES:
+                    meta = _read_json(artifacts_dir / "run_meta.json")
+                    if meta is not None:
+                        terminal = _resolve_terminal_status(
+                            run_row=_find_run_row(conn, run_id),
+                            run_meta=meta,
+                            phase=_read_phase(artifacts_dir),
+                            pid_alive=False,
+                            had_pid=True,
+                        )
+                    else:
+                        terminal = "failed"
+                    update_run_registry(
+                        conn,
+                        run_id,
+                        status=terminal,
+                        updated_ts=_utc_now(),
+                        terminal_ts=_utc_now(),
+                        last_phase=_read_phase(artifacts_dir),
+                    )
+
+    threading.Thread(target=_cleanup, daemon=True).start()
+
+
+@app.get("/api/experiment/{exp_id}")
+async def api_experiment_status(exp_id: str):
+    if exp_id not in _experiment_store:
+        raise HTTPException(404, f"Experiment {exp_id} not found")
+    plan = _experiment_store[exp_id]
+    launched = plan.get("launched_runs", [])
+
+    with _db() as conn:
+        completed = 0
+        failed = 0
+        running = 0
+        success_count = 0
+        condition_summary: dict[str, dict[str, Any]] = {}
+
+        for cond in plan["conditions"]:
+            cond_id = cond["condition_id"]
+            condition_summary[cond_id] = {
+                "condition_id": cond_id,
+                "sections": cond["sections"],
+                "total": 0,
+                "completed": 0,
+                "success": 0,
+                "failed": 0,
+                "running": 0,
+                "avg_judge_score": None,
+                "avg_duration": None,
+            }
+
+        for run_id in launched:
+            row = conn.execute(
+                "SELECT condition_id, task_success, duration_seconds, judge_score, infrastructure_error "
+                "FROM runs WHERE run_id = ?",
+                (run_id,),
+            ).fetchone()
+            reg = fetch_run_registry_row(conn, run_id) if not row else None
+
+            if row:
+                cond_id = row["condition_id"]
+                if cond_id in condition_summary:
+                    condition_summary[cond_id]["total"] += 1
+                    condition_summary[cond_id]["completed"] += 1
+                    if (
+                        int(row["task_success"]) == 1
+                        and int(row["infrastructure_error"]) == 0
+                    ):
+                        condition_summary[cond_id]["success"] += 1
+                        success_count += 1
+                    else:
+                        condition_summary[cond_id]["failed"] += 1
+                    completed += 1
+            elif reg and _registry_status_is_active(reg["status"]):
+                cond_id = reg["condition_id"]
+                if cond_id in condition_summary:
+                    condition_summary[cond_id]["total"] += 1
+                    condition_summary[cond_id]["running"] += 1
+                running += 1
+
+        scores_by_cond: dict[str, list[float]] = {}
+        durations_by_cond: dict[str, list[float]] = {}
+        for run_id in launched:
+            row = conn.execute(
+                "SELECT condition_id, judge_score, duration_seconds FROM runs WHERE run_id = ?",
+                (run_id,),
+            ).fetchone()
+            if row and row["judge_score"] is not None:
+                cond_id = row["condition_id"]
+                scores_by_cond.setdefault(cond_id, []).append(float(row["judge_score"]))
+                if row["duration_seconds"] is not None:
+                    durations_by_cond.setdefault(cond_id, []).append(
+                        float(row["duration_seconds"])
+                    )
+
+        for cond_id, scores in scores_by_cond.items():
+            if cond_id in condition_summary:
+                condition_summary[cond_id]["avg_judge_score"] = (
+                    round(sum(scores) / len(scores), 2) if scores else None
+                )
+        for cond_id, durs in durations_by_cond.items():
+            if cond_id in condition_summary:
+                condition_summary[cond_id]["avg_duration"] = (
+                    round(sum(durs) / len(durs), 1) if durs else None
+                )
+
+    all_done = running == 0 and completed + failed + len(plan.get("errors", [])) >= len(
+        launched
+    )
+    if all_done and plan["status"] == "running":
+        plan["status"] = "completed"
+
+    return {
+        "exp_id": exp_id,
+        "status": plan["status"],
+        "total_runs": len(launched),
+        "completed": completed,
+        "success": success_count,
+        "failed": failed,
+        "running": running,
+        "conditions": list(condition_summary.values()),
+        "errors": plan.get("errors", []),
+    }
+
+
+@app.get("/api/experiments")
+async def api_list_experiments():
+    return list(_experiment_store.values())
+
+
+# ── Incremental experiment endpoint ─────────────────────────────────────
+
+
+class IncrementalRequest(BaseModel):
+    task_id: str
+    base_md: str = "CONVENTIONS.baseline.md"
+    increment_md: str = "KarparthysClaude.md"
+    repetitions: int = 5
+    iteration: int = 1
+    parallel: int = 10
+
+
+@app.post("/api/incremental")
+async def api_create_incremental(req: IncrementalRequest):
+    """
+    Kernmessung: one task, incrementally more lines from a conventions source.
+    Creates N+1 convention files (k=0..N), launches R runs each.
+    Judge is triggered manually via dashboard.
+    """
+    import hashlib
+
+    init_db()
+    base_path = HARNESS_DIR / req.base_md
+    increment_path = HARNESS_DIR / req.increment_md
+    if not base_path.exists():
+        raise HTTPException(400, f"Base .md not found: {req.base_md}")
+    if not increment_path.exists():
+        raise HTTPException(400, f"Increment .md not found: {req.increment_md}")
+
+    base_content = base_path.read_text(encoding="utf-8")
+    increment_content = increment_path.read_text(encoding="utf-8")
+
+    lines = [
+        line.rstrip()
+        for line in increment_content.splitlines()
+        if line.strip()
+        and not line.strip().startswith("---")
+        and not line.strip().startswith("#")
+    ]
+    if not lines:
+        raise HTTPException(400, f"No increment lines found in {req.increment_md}")
+
+    exp_id = f"inc_{int(time.time())}"
+    task_id_clean = req.task_id.replace("/", "__")
+    exp_hash = hashlib.md5(f"{req.task_id}{req.increment_md}".encode()).hexdigest()[:6]
+
+    variants = []
+    for k in range(len(lines) + 1):
+        if k == 0:
+            cond_id = f"{exp_hash}_baseline"
+            md_content = base_content
+        else:
+            cond_id = f"{exp_hash}_k{k:03d}"
+            md_content = base_content.rstrip() + "\n\n" + "\n".join(lines[:k]) + "\n"
+
+        md_filename = f"CONVENTIONS.{cond_id}.md"
+        md_file = HARNESS_DIR / md_filename
+        md_file.write_text(md_content, encoding="utf-8")
+
+        runs = []
+        for rep in range(1, req.repetitions + 1):
+            run_id = f"{cond_id}_{task_id_clean}_rep{rep:02d}"
+            artifacts_dir = RESULTS_DIR / cond_id / req.task_id / run_id
+            artifacts_dir.mkdir(parents=True, exist_ok=True)
+            runs.append(
+                {
+                    "run_id": run_id,
+                    "condition_id": cond_id,
+                    "artifacts_dir": str(artifacts_dir),
+                    "k": k,
+                    "rep": rep,
+                    "status": "pending",
+                }
+            )
+
+        variants.append(
+            {
+                "condition_id": cond_id,
+                "k": k,
+                "lines_count": k,
+                "lines_added": lines[:k] if k > 0 else [],
+                "md_path": str(md_file),
+                "repetitions": runs,
+            }
+        )
+
+    plan = {
+        "exp_id": exp_id,
+        "task_id": req.task_id,
+        "base_md": req.base_md,
+        "increment_md": req.increment_md,
+        "repetitions": req.repetitions,
+        "parallel": min(req.parallel, MAX_ACTIVE_RUNS),
+        "total_lines": len(lines),
+        "variants": variants,
+        "total_runs": sum(len(v["repetitions"]) for v in variants),
+        "status": "created",
+        "created_ts": _utc_now(),
+        "launched_ts": None,
+    }
+    _experiment_store[exp_id] = plan
+    return plan
+
+
+@app.post("/api/incremental/{exp_id}/launch")
+async def api_launch_incremental(exp_id: str):
+    """Launch all runs for an incremental experiment. Respects MAX_ACTIVE_RUNS."""
+    if exp_id not in _experiment_store:
+        raise HTTPException(404, f"Experiment {exp_id} not found")
+    plan = _experiment_store[exp_id]
+    if plan["status"] != "created":
+        raise HTTPException(
+            409, f"Experiment already launched (status: {plan['status']})"
+        )
+
+    plan["status"] = "running"
+    plan["launched_ts"] = _utc_now()
+    config = load_config()
+
+    pending: list[tuple[str, str, Path, int, int]] = []
+    for variant in plan["variants"]:
+        for run in variant["repetitions"]:
+            pending.append(
+                (
+                    run["run_id"],
+                    variant["condition_id"],
+                    Path(run["artifacts_dir"]),
+                    variant["k"],
+                    run["rep"],
+                )
+            )
+
+    launched: list[str] = []
+    errors: list[dict[str, str]] = []
+
+    for run_id, cond_id, artifacts_dir, k, rep in pending:
+        while True:
+            with _launch_lock:
+                active_count = len(_launch_processes)
+            if active_count < plan["parallel"]:
+                break
+            time.sleep(2)
+
+        now = _utc_now()
+        md_path = str(HARNESS_DIR / f"CONVENTIONS.{cond_id}.md")
+        with _db() as conn:
+            upsert_run_registry(
+                conn,
+                {
+                    "run_id": run_id,
+                    "task_id": plan["task_id"],
+                    "condition_id": cond_id,
+                    "iteration": plan.get("iteration", 1),
+                    "model_name": config.aider_model,
+                    "conventions_path": md_path,
+                    "status": "starting",
+                    "pid": None,
+                    "artifacts_dir": str(artifacts_dir),
+                    "start_ts": now,
+                    "updated_ts": now,
+                    "last_phase": "starting",
+                    "error_detail": None,
+                    "terminal_ts": None,
+                },
+            )
+            conn.commit()
+
+        cmd = [
+            sys.executable,
+            "-m",
+            "runner.run_once",
+            "--task-id",
+            plan["task_id"],
+            "--condition",
+            cond_id,
+            "--iteration",
+            str(plan.get("iteration", 1)),
+            "--run-index",
+            str(rep),
+            "--conventions-path",
+            md_path,
+        ]
+
+        try:
+            proc = subprocess.Popen(
+                cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
+            )
+        except Exception as exc:
+            errors.append({"run_id": run_id, "error": str(exc)})
+            with _db() as conn:
+                update_run_registry(
+                    conn,
+                    run_id,
+                    status="failed_to_start",
+                    updated_ts=_utc_now(),
+                    terminal_ts=_utc_now(),
+                )
+            continue
+
+        with _launch_lock:
+            _launch_processes[run_id] = proc
+            _running_pids[run_id] = proc
+
+        launched.append(run_id)
+
+        def _cleanup(rid: str = run_id, ad: Path = artifacts_dir):
+            p = _running_pids.get(rid)
+            if p:
+                p.wait()
+            with _launch_lock:
+                _running_pids.pop(rid, None)
+                _launch_processes.pop(rid, None)
+            with _db() as c:
+                row = fetch_run_registry_row(c, rid)
+                if row:
+                    reconciled = _reconcile_registry_row_locked(c, row)
+                    if reconciled.get("status") in ACTIVE_REGISTRY_STATUSES:
+                        meta = _read_json(ad / "run_meta.json")
+                        terminal = _resolve_terminal_status(
+                            run_row=_find_run_row(c, rid),
+                            run_meta=meta,
+                            phase=_read_phase(ad),
+                            pid_alive=False,
+                            had_pid=True,
+                        )
+                    else:
+                        terminal = reconciled.get("status", "failed")
+                    update_run_registry(
+                        c,
+                        rid,
+                        status=terminal,
+                        updated_ts=_utc_now(),
+                        terminal_ts=_utc_now(),
+                        last_phase=_read_phase(ad),
+                    )
+
+        threading.Thread(target=_cleanup, daemon=True).start()
+
+    return {
+        "exp_id": exp_id,
+        "launched": len(launched),
+        "errors": len(errors),
+        "run_ids": launched,
+    }
+
+
+@app.get("/api/incremental/{exp_id}")
+async def api_incremental_status(exp_id: str):
+    """Poll status of all runs in an incremental experiment."""
+    if exp_id not in _experiment_store:
+        raise HTTPException(404, f"Experiment {exp_id} not found")
+    plan = _experiment_store[exp_id]
+
+    all_run_ids = [r["run_id"] for v in plan["variants"] for r in v["repetitions"]]
+    completed = 0
+    success = 0
+    failed = 0
+    running = 0
+    pending = 0
+
+    results_by_k: dict[int, dict] = {}
+    for variant in plan["variants"]:
+        k = variant["k"]
+        if k not in results_by_k:
+            results_by_k[k] = {
+                "k": k,
+                "condition_id": variant["condition_id"],
+                "lines_count": k,
+                "completed": 0,
+                "success": 0,
+                "judge_scores": [],
+                "durations": [],
+            }
+
+    judge_scores_by_cond: dict[str, list[float]] = {}
+    durations_by_cond: dict[str, list[float]] = {}
+
+    with _db() as conn:
+        for run_id in all_run_ids:
+            row = conn.execute(
+                "SELECT condition_id, task_success, judge_score, duration_seconds, infrastructure_error "
+                "FROM runs WHERE run_id = ?",
+                (run_id,),
+            ).fetchone()
+            reg = conn.execute(
+                "SELECT status FROM run_registry WHERE run_id = ?", (run_id,)
+            ).fetchone()
+
+            if row:
+                completed += 1
+                cond_id = row["condition_id"]
+                judge_scores_by_cond.setdefault(cond_id, [])
+                durations_by_cond.setdefault(cond_id, [])
+
+                is_success = (
+                    int(row["task_success"]) == 1
+                    and int(row.get("infrastructure_error", 0)) == 0
+                )
+                if is_success:
+                    success += 1
+                else:
+                    failed += 1
+
+                for vk, vr in results_by_k.items():
+                    if vr["condition_id"] == cond_id:
+                        vr["completed"] += 1
+                        if is_success:
+                            vr["success"] += 1
+                        break
+
+                if row["judge_score"] is not None:
+                    judge_scores_by_cond[cond_id].append(float(row["judge_score"]))
+                if row["duration_seconds"] is not None:
+                    durations_by_cond[cond_id].append(float(row["duration_seconds"]))
+            elif reg and _registry_status_is_active(reg["status"]):
+                running += 1
+            else:
+                pending += 1
+
+        for variant in plan["variants"]:
+            k = variant["k"]
+            cond_id = variant["condition_id"]
+            scores = judge_scores_by_cond.get(cond_id, [])
+            durs = durations_by_cond.get(cond_id, [])
+            results_by_k[k]["judge_scores"] = scores
+            results_by_k[k]["durations"] = durs
+
+    all_done = running == 0 and completed + failed >= len(all_run_ids)
+    if all_done and plan["status"] == "running":
+        plan["status"] = "completed"
+
+    k_results = []
+    for k in sorted(results_by_k.keys()):
+        r = results_by_k[k]
+        scores = r["judge_scores"]
+        durs = r["durations"]
+        n = len(scores)
+        k_results.append(
+            {
+                "k": k,
+                "condition_id": r["condition_id"],
+                "lines_count": k,
+                "runs_completed": r["completed"],
+                "runs_success": r["success"],
+                "judge_score_mean": round(sum(scores) / n, 2) if n > 0 else None,
+                "judge_score_std": round(
+                    (sum((s - sum(scores) / n) ** 2 for s in scores) / n) ** 0.5, 2
+                )
+                if n > 1
+                else None,
+                "duration_mean": round(sum(durs) / len(durs), 1) if durs else None,
+            }
+        )
+
+    return {
+        "exp_id": exp_id,
+        "status": plan["status"],
+        "task_id": plan["task_id"],
+        "total_lines": plan["total_lines"],
+        "total_runs": len(all_run_ids),
+        "completed": completed,
+        "success": success,
+        "failed": failed,
+        "running": running,
+        "pending": pending,
+        "variants_k": k_results,
+    }
 
 
 app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")

@@ -13,6 +13,12 @@
     "cost_estimate": {"type": ["number", "null"]},
     "tests_total": {"type": "integer"},
     "tests_passed": {"type": "integer"},
-    "task_success": {"type": "boolean"}
+    "task_success": {"type": "boolean"},
+    "unrelated_edits_present": {"type": "boolean"},
+    "files_changed": {"type": "integer"},
+    "lines_added": {"type": "integer"},
+    "lines_removed": {"type": "integer"},
+    "duration_seconds": {"type": "number"},
+    "diff_source": {"type": "string"}
   }
 }

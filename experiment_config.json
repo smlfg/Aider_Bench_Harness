@@ -1,0 +1,81 @@
+{
+  "experiment": {
+    "name": "harness_evaluation_v1",
+    "description": "Baseline vs Negativkontrolle + isolierte Regeltests",
+    "version": 1
+  },
+  "model": {
+    "name": "MiniMax-M2.7-highspeed",
+    "fallback": "MiniMax-M2.7",
+    "temperature": 0.0,
+    "note": "Fixed model for all runs. No variation during measurement phase."
+  },
+  "tasks": {
+    "source": "data/selected_tasks.json",
+    "count": 3,
+    "filter": {
+      "max_files_expected": 4,
+      "must_have_fail_to_pass": true,
+      "preferred_repos": ["django/django"],
+      "avoid_repos": ["sympy/sympy"]
+    }
+  },
+  "conditions": {
+    "baseline_6line": {
+      "conventions_file": "harness/CONVENTIONS.baseline.md",
+      "description": "Minimale 6-Zeilen Baseline Policy"
+    },
+    "negative_control_karpathy40": {
+      "conventions_file": "harness/KarparthysClaude.md",
+      "description": "40-§ Regelwerk als Negativkontrolle - erwartet schlechtere Performance wegen Overload"
+    }
+  },
+  "runs": {
+    "runs_per_condition_per_task": 3,
+    "note": "3 Runs geben genug data für variance-Schätzung bei kurzer Laufzeit"
+  },
+  "timeouts": {
+    "agent_timeout_s": 1800,
+    "eval_timeout_s": 7200
+  },
+  "fail_fast": {
+    "max_task_success_variance": 0.4,
+    "min_discriminative_tasks": 2,
+    "baseline_stability_threshold": 0.33,
+    "min_pass_rate": 0.2,
+    "max_pass_rate": 0.8,
+    "note": "If baseline variance exceeds these thresholds, abort and report"
+  },
+  "metrics": {
+    "primary": [
+      "task_success",
+      "FAIL_TO_PASS",
+      "PASS_TO_PASS",
+      "tests_passed / tests_total"
+    ],
+    "secondary": [
+      "tokens_in",
+      "tokens_out",
+      "duration_s",
+      "files_changed",
+      "lines_added",
+      "lines_removed",
+      "unrelated_edits_present",
+      "target_file"
+    ]
+  },
+  "judge": {
+    "rubric_fields": [
+      "scope_adherence",
+      "minimality",
+      "diff_clarity"
+    ],
+    "verdict_values": ["support", "mixed", "reject"],
+    "note": "Judge is secondary tiebreaker only. Hard metrics always take precedence."
+  },
+  "directories": {
+    "artifacts_pattern": "results/{condition_id}/{task_id}/{run_id}/",
+    "db_path": "results/experiment.db",
+    "summary_path": "results/summary/"
+  }
+}

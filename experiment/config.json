@@ -1,0 +1,12 @@
+{
+  "experiment_name": "harness_policy_eval_v1",
+  "model": "MiniMax-M2.7-highspeed",
+  "tasks_file": "tasks/tasks.json",
+  "runs_per_condition": 3,
+  "agent_timeout_s": 1800,
+  "eval_timeout_s": 7200,
+  "conditions": [
+    "baseline_6line",
+    "negative_control_karpathy40"
+  ]
+}

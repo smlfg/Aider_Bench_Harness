@@ -15,3 +15,12 @@ data/swebench_lite_candidates.json
 data/selected_tasks.json
 
 .aider*
+.hermes/
+
+# Local scratch / raw measurement artifacts
+*.log
+*.eval_clean_test.json
+baseline_measurement.log
+telco_data.csv
+hier.
+data/screening_tasks.json

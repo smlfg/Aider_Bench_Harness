@@ -1,0 +1,185 @@
+/* ============================================================
+   Results Visualiser — neue CSS-Klassen für den results-tab
+   ============================================================ */
+
+/* Summary Cards */
+.results-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.results-stat-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 14px;
+  text-align: center;
+}
+.results-stat-card .label {
+  display: block;
+  font-size: 11px;
+  color: var(--text-dim);
+  margin-bottom: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.results-stat-card .value {
+  display: block;
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--text);
+}
+.results-stat-card .value.good { color: #4caf50; }
+.results-stat-card .value.bad { color: #f44336; }
+.results-stat-card .value.neutral { color: #ff9800; }
+
+/* Condition Grid */
+.condition-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 14px;
+  margin-bottom: 20px;
+}
+.condition-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 14px;
+}
+.condition-card h4 {
+  margin: 0 0 10px 0;
+  font-size: 14px;
+  color: var(--accent);
+  word-break: break-all;
+}
+.condition-card .metric-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 3px 0;
+  font-size: 12px;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+.condition-card .metric-row:last-child { border-bottom: none; }
+.condition-card .metric-label { color: var(--text-dim); }
+.condition-card .metric-value { color: var(--text); font-weight: 600; }
+
+/* Failure Breakdown */
+.failure-bar {
+  display: flex;
+  height: 24px;
+  border-radius: 4px;
+  overflow: hidden;
+  margin: 8px 0;
+  background: #1a1a1a;
+}
+.failure-bar-segment {
+  height: 100%;
+  transition: width 0.3s;
+  position: relative;
+  min-width: 2px;
+}
+.failure-bar-segment:hover {
+  opacity: 0.8;
+}
+.failure-bar-segment span {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 10px;
+  color: white;
+  white-space: nowrap;
+}
+
+/* Heatmap Table */
+.heatmap-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 2px;
+  font-size: 12px;
+}
+.heatmap-table th {
+  background: var(--bg);
+  padding: 6px 8px;
+  text-align: left;
+  color: var(--text-dim);
+  font-weight: 500;
+  position: sticky;
+  top: 0;
+}
+.heatmap-table td {
+  padding: 6px 8px;
+  text-align: center;
+  border-radius: 3px;
+  font-weight: 600;
+  cursor: default;
+}
+.heatmap-table tr:hover td {
+  outline: 1px solid var(--accent);
+}
+
+/* Timeline */
+.timeline-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  font-size: 12px;
+}
+.timeline-row .tl-time {
+  width: 80px;
+  color: var(--text-dim);
+  flex-shrink: 0;
+}
+.timeline-row .tl-id {
+  width: 200px;
+  color: var(--accent);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.timeline-row .tl-bar {
+  flex: 1;
+  height: 16px;
+  background: #1a1a1a;
+  border-radius: 3px;
+  overflow: hidden;
+  position: relative;
+}
+.timeline-row .tl-bar-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.3s;
+}
+.timeline-row .tl-result {
+  width: 50px;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+/* Chart container overrides for results */
+.results-charts-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin-bottom: 20px;
+}
+@media (max-width: 800px) {
+  .results-charts-row {
+    grid-template-columns: 1fr;
+  }
+}
+.results-chart-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 14px;
+}
+.results-chart-card h4 {
+  margin: 0 0 8px 0;
+  font-size: 13px;
+  color: var(--text-dim);
+}

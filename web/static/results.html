@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Harness Results Visualiser</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+  <link rel="stylesheet" href="/viz-static/style.css" />
+  <link rel="stylesheet" href="/viz-static/results.css" />
+  <style>
+    body { max-width: 1400px; margin: 0 auto; padding: 18px; }
+    .topbar { display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; }
+    .topbar h1 { margin:0; }
+    .hint { color: var(--text-dim); font-size:12px; }
+  </style>
+</head>
+<body>
+  <div class="topbar">
+    <div>
+      <h1>Results Visualiser</h1>
+      <div class="hint">Bewertung der bisherigen Tests + Prozess-Tuning Basis</div>
+    </div>
+    <div>
+      <button class="launch-btn" onclick="window.refreshResults && window.refreshResults()">Refresh</button>
+      <a href="/" style="margin-left:10px;color:var(--accent);">Zurück zum Cockpit</a>
+    </div>
+  </div>
+
+  <div id="results-content"></div>
+
+  <script src="/viz-static/results.js"></script>
+</body>
+</html>

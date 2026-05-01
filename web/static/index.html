@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Harness Dashboard</title>
   <link rel="stylesheet" href="/static/style.css">
+  <link rel="stylesheet" href="/static/results.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
 </head>
 <body>
@@ -17,6 +18,7 @@
       <button class="tab-btn" data-tab="iteration">Iteration</button>
       <button class="tab-btn" data-tab="trajectory">Trajectory</button>
       <button class="tab-btn" data-tab="runs">Runs</button>
+      <button class="tab-btn" data-tab="results">Results Visualiser</button>
     </nav>
   </header>
 
@@ -318,6 +320,19 @@
         <div id="run-detail-content"></div>
       </div>
     </section>
+
+    <!-- TAB: Results Visualiser -->
+    <section id="tab-results" class="tab-content">
+      <div class="card">
+        <h2>Results Visualiser</h2>
+        <p style="color:var(--text-dim);font-size:12px;">
+          Lädt alle Runs aus <code>/api/runs</code> und zeigt Überblick, Failure-Breakdown,
+          Condition-Performance, Task×Condition-Heatmap und Timeline.
+        </p>
+        <button class="launch-btn" onclick="window.refreshResults && window.refreshResults()">Refresh Results</button>
+      </div>
+      <div id="results-content" style="margin-top:12px;"></div>
+    </section>
   </main>
 
   <!-- Monitor overlay (shown when viewing a running or completed run) -->
@@ -395,6 +410,7 @@
   </div>
 
   <script src="/static/charts.js"></script>
+  <script src="/static/results.js"></script>
   <script src="/static/app.js"></script>
 </body>
 </html>

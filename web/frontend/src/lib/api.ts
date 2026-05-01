@@ -133,3 +133,163 @@ export async function launchRun(data: {
 export async function abortRun(runId: string): Promise<void> {
   await fetch(`/api/runs/${runId}/abort`, { method: 'POST' });
 }
+
+export async function judgeRun(runId: string): Promise<{ run_id: string; status: string; judge_score: number | null }> {
+  const resp = await fetch(`/api/runs/${runId}/judge`, { method: 'POST' });
+  if (!resp.ok) {
+    const err = await resp.json();
+    throw new Error(err.detail || `Judge failed for ${runId}`);
+  }
+  return resp.json();
+}
+
+export interface ExperimentPlan {
+  exp_id: string;
+  task_ids: string[];
+  base_md: string;
+  target_md: string;
+  parts: number;
+  reps_per_part: number;
+  parallel: number;
+  conditions: { condition_id: string; md_path: string; sections: number }[];
+  total_sections: number;
+  total_runs: number;
+  status: string;
+}
+
+export interface ExperimentStatus {
+  exp_id: string;
+  status: string;
+  total_runs: number;
+  completed: number;
+  success: number;
+  failed: number;
+  running: number;
+  conditions: {
+    condition_id: string;
+    sections: number;
+    total: number;
+    completed: number;
+    success: number;
+    failed: number;
+    running: number;
+    avg_judge_score: number | null;
+    avg_duration: number | null;
+  }[];
+  errors: { run_id: string; error: string }[];
+}
+
+export async function createExperiment(data: {
+  task_ids: string[];
+  base_md?: string;
+  target_md?: string;
+  parts?: number;
+  reps_per_part?: number;
+  parallel?: number;
+}): Promise<ExperimentPlan> {
+  const resp = await fetch('/api/experiment', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  if (!resp.ok) {
+    const err = await resp.json();
+    throw new Error(err.detail || 'Failed to create experiment');
+  }
+  return resp.json();
+}
+
+export async function startExperiment(expId: string): Promise<{ launched: number; errors: number; run_ids: string[] }> {
+  const resp = await fetch(`/api/experiment/${expId}/start`, { method: 'POST' });
+  if (!resp.ok) {
+    const err = await resp.json();
+    throw new Error(err.detail || 'Failed to start experiment');
+  }
+  return resp.json();
+}
+
+export async function fetchExperimentStatus(expId: string): Promise<ExperimentStatus> {
+  const resp = await fetch(`/api/experiment/${expId}`);
+  return resp.json();
+}
+
+export async function fetchExperiments(): Promise<ExperimentPlan[]> {
+  const resp = await fetch('/api/experiments');
+  return resp.json();
+}
+
+export interface IncrementalPlan {
+  exp_id: string;
+  task_id: string;
+  base_md: string;
+  increment_md: string;
+  repetitions: number;
+  parallel: number;
+  total_lines: number;
+  variants: {
+    condition_id: string;
+    k: number;
+    lines_count: number;
+    md_path: string;
+    repetitions: { run_id: string; condition_id: string; artifacts_dir: string; k: number; rep: number; status: string }[];
+  }[];
+  total_runs: number;
+  status: string;
+}
+
+export interface IncrementalStatus {
+  exp_id: string;
+  status: string;
+  task_id: string;
+  total_lines: number;
+  total_runs: number;
+  completed: number;
+  success: number;
+  failed: number;
+  running: number;
+  pending: number;
+  variants_k: {
+    k: number;
+    condition_id: string;
+    lines_count: number;
+    runs_completed: number;
+    runs_success: number;
+    judge_score_mean: number | null;
+    judge_score_std: number | null;
+    duration_mean: number | null;
+  }[];
+}
+
+export async function createIncremental(data: {
+  task_id: string;
+  base_md?: string;
+  increment_md?: string;
+  repetitions?: number;
+  iteration?: number;
+  parallel?: number;
+}): Promise<IncrementalPlan> {
+  const resp = await fetch('/api/incremental', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  if (!resp.ok) {
+    const err = await resp.json();
+    throw new Error(err.detail || 'Failed to create incremental experiment');
+  }
+  return resp.json();
+}
+
+export async function launchIncremental(expId: string): Promise<{ launched: number; errors: number; run_ids: string[] }> {
+  const resp = await fetch(`/api/incremental/${expId}/launch`, { method: 'POST' });
+  if (!resp.ok) {
+    const err = await resp.json();
+    throw new Error(err.detail || 'Failed to launch incremental experiment');
+  }
+  return resp.json();
+}
+
+export async function fetchIncrementalStatus(expId: string): Promise<IncrementalStatus> {
+  const resp = await fetch(`/api/incremental/${expId}`);
+  return resp.json();
+}

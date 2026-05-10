@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { fetchPreflight } from '../lib/preflight';
 import type { PreflightResult } from '../lib/preflight';
-import { CheckCircle2, XCircle, Info, AlertTriangle, Activity, Database, Server, Cpu, Key, Zap } from 'lucide-react';
+import { CheckCircle2, XCircle, Info, AlertTriangle, Activity, Database, Server, Cpu, Key, Zap, Microscope } from 'lucide-react';
 
 const iconMap: Record<string, React.FC<{ size?: number; className?: string }>> = {
   docker: Server,
@@ -12,8 +12,8 @@ const iconMap: Record<string, React.FC<{ size?: number; className?: string }>> =
   litellm: Zap,
 };
 
-const pipelineSvgUrl = '/static/pipeline.svg';
-const experimentSvgUrl = '/static/experiment.svg';
+const pipelineSvgUrl = '/viz-static/pipeline.svg';
+const experimentSvgUrl = '/viz-static/experiment.svg';
 
 const InfoPage: React.FC = () => {
   const [preflight, setPreflight] = useState<PreflightResult | null>(null);
@@ -35,7 +35,18 @@ const InfoPage: React.FC = () => {
     <div className="max-w-6xl mx-auto space-y-8 pb-12">
       {/* Experiment Architecture */}
       <section>
-        <h2 className="text-xl font-bold text-gray-900 mb-4">Versuchsaufbau</h2>
+        <div className="flex items-center justify-between gap-4 mb-4">
+          <h2 className="text-xl font-bold text-gray-900">Versuchsaufbau</h2>
+          <a
+            href="/scientific-versuchsaufbau"
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center space-x-2 px-3 py-2 rounded-lg border border-blue-200 bg-blue-50 text-sm font-semibold text-blue-700 hover:bg-blue-100"
+          >
+            <Microscope size={16} />
+            <span>Wissenschaftlicher Modus</span>
+          </a>
+        </div>
         <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
           <img src={experimentSvgUrl} alt="Versuchsaufbau" className="w-full" />
         </div>

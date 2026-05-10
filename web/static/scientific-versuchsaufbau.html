@@ -1,0 +1,505 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>FirstHarnessEval - wissenschaftlicher Versuchsaufbau</title>
+  <style>
+    :root {
+      --bg: #f5f7fa;
+      --panel: #ffffff;
+      --ink: #17202a;
+      --muted: #5d6d7e;
+      --line: #d7dee8;
+      --blue: #1f6feb;
+      --green: #1f8f55;
+      --red: #bf2f43;
+      --amber: #b7791f;
+      --violet: #6f42c1;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      --sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: var(--sans);
+      line-height: 1.45;
+    }
+
+    main {
+      max-width: 1320px;
+      margin: 0 auto;
+      padding: 32px 20px 72px;
+    }
+
+    header {
+      display: grid;
+      grid-template-columns: 1.15fr .85fr;
+      gap: 18px;
+      align-items: stretch;
+      margin-bottom: 22px;
+    }
+
+    .hero, .panel, .node, .metric, .claim, .run-cell {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: 0 10px 24px rgba(23, 32, 42, .06);
+    }
+
+    .hero { padding: 28px; }
+    .eyebrow {
+      margin: 0 0 10px;
+      color: var(--blue);
+      font: 700 12px/1 var(--mono);
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+    h1 {
+      max-width: 860px;
+      margin: 0 0 16px;
+      font-size: clamp(36px, 5.2vw, 72px);
+      line-height: .95;
+      letter-spacing: 0;
+    }
+    .lead {
+      max-width: 760px;
+      margin: 0;
+      color: #34495e;
+      font-size: 19px;
+    }
+
+    .thesis {
+      padding: 22px;
+      display: grid;
+      gap: 12px;
+    }
+    .thesis strong {
+      font-size: 21px;
+    }
+    code {
+      font-family: var(--mono);
+      font-size: .92em;
+      background: #eef2f7;
+      border: 1px solid #dde5ef;
+      border-radius: 6px;
+      padding: 1px 5px;
+    }
+
+    section { margin-top: 22px; }
+    .section-title {
+      display: flex;
+      justify-content: space-between;
+      align-items: end;
+      gap: 16px;
+      margin-bottom: 10px;
+    }
+    h2 {
+      margin: 0;
+      font-size: 28px;
+      letter-spacing: 0;
+    }
+    .section-title p {
+      margin: 0;
+      max-width: 560px;
+      color: var(--muted);
+    }
+    .panel { padding: 18px; }
+
+    .before-after {
+      display: grid;
+      grid-template-columns: 1fr 54px 1fr;
+      gap: 14px;
+      align-items: stretch;
+    }
+    .side {
+      display: grid;
+      gap: 12px;
+    }
+    .side h3 {
+      margin: 0;
+      font-size: 20px;
+    }
+    .node {
+      padding: 16px;
+      min-height: 126px;
+      display: grid;
+      gap: 8px;
+      align-content: start;
+    }
+    .node strong { font-size: 17px; }
+    .node span, .node p {
+      margin: 0;
+      color: var(--muted);
+    }
+    .danger { border-left: 5px solid var(--red); }
+    .good { border-left: 5px solid var(--green); }
+    .neutral { border-left: 5px solid var(--blue); }
+    .arrow {
+      display: grid;
+      place-items: center;
+      color: var(--amber);
+      font: 800 38px/1 var(--mono);
+    }
+
+    .pipeline {
+      display: grid;
+      grid-template-columns: repeat(6, minmax(150px, 1fr));
+      gap: 10px;
+    }
+    .step {
+      background: #17202a;
+      color: #fff;
+      border-radius: 8px;
+      padding: 14px;
+      min-height: 158px;
+      display: grid;
+      gap: 10px;
+      align-content: start;
+    }
+    .step .num {
+      color: #8ab4ff;
+      font: 800 12px/1 var(--mono);
+    }
+    .step strong { font-size: 15px; }
+    .step span {
+      color: rgba(255,255,255,.72);
+      font-size: 13px;
+    }
+
+    .claims {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+    }
+    .claim { padding: 16px; }
+    .claim b {
+      display: inline-block;
+      margin-bottom: 8px;
+      font: 800 12px/1 var(--mono);
+      color: var(--violet);
+    }
+    .claim strong {
+      display: block;
+      margin-bottom: 10px;
+      font-size: 18px;
+    }
+    .claim p { margin: 0; color: var(--muted); }
+
+    .matrix {
+      display: grid;
+      grid-template-columns: 190px repeat(4, 1fr);
+      gap: 8px;
+      align-items: stretch;
+    }
+    .run-cell {
+      padding: 12px;
+      min-height: 94px;
+      display: grid;
+      gap: 7px;
+      align-content: start;
+    }
+    .run-cell.header {
+      background: #17202a;
+      color: #fff;
+      box-shadow: none;
+    }
+    .run-cell strong { font-size: 14px; }
+    .run-cell span {
+      color: var(--muted);
+      font-size: 13px;
+    }
+    .run-cell.header span { color: rgba(255,255,255,.68); }
+
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+    }
+    .metric {
+      padding: 16px;
+      min-height: 145px;
+      border-top: 5px solid var(--blue);
+    }
+    .metric.red { border-top-color: var(--red); }
+    .metric.green { border-top-color: var(--green); }
+    .metric.amber { border-top-color: var(--amber); }
+    .metric strong {
+      display: block;
+      margin-bottom: 8px;
+      font-size: 17px;
+    }
+    .metric p { margin: 0; color: var(--muted); }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      overflow: hidden;
+      border-radius: 8px;
+      font-size: 14px;
+    }
+    th, td {
+      border: 1px solid var(--line);
+      padding: 10px 12px;
+      text-align: left;
+      vertical-align: top;
+    }
+    th {
+      background: #17202a;
+      color: #fff;
+      font-weight: 700;
+    }
+    td { background: #fff; }
+    .cmd {
+      margin: 0;
+      padding: 16px;
+      background: #17202a;
+      color: #d6e2ff;
+      border-radius: 8px;
+      overflow: auto;
+      font: 13px/1.5 var(--mono);
+    }
+
+    @media (max-width: 980px) {
+      header, .before-after, .claims, .metrics { grid-template-columns: 1fr; }
+      .arrow { min-height: 42px; transform: rotate(90deg); }
+      .pipeline { grid-template-columns: 1fr 1fr; }
+      .matrix { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 560px) {
+      main { padding: 18px 12px 48px; }
+      .pipeline { grid-template-columns: 1fr; }
+      .section-title { display: block; }
+      h1 { font-size: 38px; }
+    }
+  </style>
+</head>
+<body>
+<main>
+  <header>
+    <div class="hero">
+      <p class="eyebrow">FirstHarnessEval · wissenschaftlicher Modus</p>
+      <h1>Von Run-Artefakten zu belastbarer Erkenntnis</h1>
+      <p class="lead">
+        Das Projekt wird wissenschaftlich, wenn jede Markdown-Policy als Intervention
+        behandelt wird: gleiche Tasks, gleiche Messpipeline, klare Baseline,
+        explizite Hypothese und sichtbare Gegenbeispiele.
+      </p>
+    </div>
+    <div class="thesis">
+      <strong>Neue Leitfrage</strong>
+      <span>
+        Nicht: <code>Karpathy.md ist gut</code>. Sondern:
+        <code>Reduziert Condition B bei kleinen Coding-Tasks Fehlverhalten gegenueber Condition A?</code>
+      </span>
+      <span>
+        Das CLI <code>harness-science-ab</code> erzeugt genau diese A/B-Lesart.
+      </span>
+    </div>
+  </header>
+
+  <section>
+    <div class="section-title">
+      <h2>Vorher vs. wissenschaftlich sauber</h2>
+      <p>Der Unterschied ist nicht mehr Compute, sondern eine strengere Erkenntnislogik.</p>
+    </div>
+    <div class="panel before-after">
+      <div class="side">
+        <h3>Vorher: Rohbeobachtung</h3>
+        <div class="node danger"><strong>Viele Runs</strong><span>Aber Smoke-Runs, Infra-Fehler und `tests_total = 0` koennen in der Interpretation vermischt werden.</span></div>
+        <div class="node danger"><strong>Globale Behauptung</strong><span>`Karpathy.md ist besser` ist zu breit und kaum falsifizierbar.</span></div>
+        <div class="node danger"><strong>Score-Sammeln</strong><span>Ohne gepaarte Task-Vergleiche sieht man nicht, wo Candidate schlechter wird.</span></div>
+      </div>
+      <div class="arrow">→</div>
+      <div class="side">
+        <h3>Nachher: Erkenntnisdesign</h3>
+        <div class="node good"><strong>Validity Gate</strong><span>Nur gueltige harte Messungen: keine Infra-Fehler, Tests vorhanden, gleiche Iteration.</span></div>
+        <div class="node good"><strong>A/B mit Scope</strong><span>Baseline und Candidate werden pro gemeinsamem Task verglichen.</span></div>
+        <div class="node good"><strong>Falsifikation sichtbar</strong><span>Jeder schlechtere Task wird als Gegenbeispiel gegen die starke Behauptung gelistet.</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-title">
+      <h2>Neue wissenschaftliche Pipeline</h2>
+      <p>Diese Pipeline liegt jetzt im Projekt als Protokoll und CLI.</p>
+    </div>
+    <div class="pipeline">
+      <div class="step"><span class="num">01</span><strong>Claim festlegen</strong><span>H_strong, H_avg und H_safety getrennt formulieren.</span></div>
+      <div class="step"><span class="num">02</span><strong>Scope einfrieren</strong><span>Kleine Coding-Tasks, gleiche Iteration, gleiches Modell, gleiche Runner-Version.</span></div>
+      <div class="step"><span class="num">03</span><strong>Validity Gate</strong><span>Infra-Fehler und Runs ohne Tests werden aus harter Evidenz entfernt.</span></div>
+      <div class="step"><span class="num">04</span><strong>Task-Pairing</strong><span>Nur gemeinsame Tasks werden Baseline gegen Candidate verglichen.</span></div>
+      <div class="step"><span class="num">05</span><strong>Effekt schaetzen</strong><span>Deltas, Bootstrap-CI, Win/Loss/Tie und Safety-Metriken.</span></div>
+      <div class="step"><span class="num">06</span><strong>Urteil ziehen</strong><span>Support, Falsifikation, Trend oder nicht entscheidbar.</span></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-title">
+      <h2>Drei Hypothesen statt einer Parole</h2>
+      <p>So bleibt klar, was ein Gegenbeispiel wirklich zerstoert.</p>
+    </div>
+    <div class="claims">
+      <div class="claim">
+        <b>H_strong</b>
+        <strong>Nie schlechter als Baseline</strong>
+        <p>Ein einziger valider Task, bei dem Candidate schlechtere harte Metriken hat, falsifiziert diese starke Behauptung.</p>
+      </div>
+      <div class="claim">
+        <b>H_avg</b>
+        <strong>Besser im Erwartungswert</strong>
+        <p>Diese Behauptung braucht mehrere Tasks, Repeats und ein mittleres Delta mit Unsicherheit.</p>
+      </div>
+      <div class="claim">
+        <b>H_safety</b>
+        <strong>Keine neuen Fehler</strong>
+        <p>Neue PASS_TO_PASS-Regressionen, unrelated edits oder Failure-Klassen zaehlen als Sicherheitsverlust.</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-title">
+      <h2>A/B-Matrix</h2>
+      <p>So soll eine auswertbare Messung aussehen.</p>
+    </div>
+    <div class="matrix">
+      <div class="run-cell header"><strong>Task</strong><span>gleiche Aufgabe</span></div>
+      <div class="run-cell header"><strong>A: Baseline</strong><span>Run 1..5</span></div>
+      <div class="run-cell header"><strong>B: Candidate</strong><span>Run 1..5</span></div>
+      <div class="run-cell header"><strong>Delta</strong><span>B minus A</span></div>
+      <div class="run-cell header"><strong>Urteil</strong><span>Win, loss, tie</span></div>
+
+      <div class="run-cell"><strong>astropy-12907</strong><span>kleiner Bugfix</span></div>
+      <div class="run-cell"><strong>valid A-runs</strong><span>task_success, tests_pass_rate, PTP</span></div>
+      <div class="run-cell"><strong>valid B-runs</strong><span>gleiche Task-Zelle, andere Policy</span></div>
+      <div class="run-cell"><strong>Δ tests</strong><span>Candidate - Baseline</span></div>
+      <div class="run-cell"><strong>Counterexample?</strong><span>ja, wenn B schlechter ist</span></div>
+
+      <div class="run-cell"><strong>django-10924</strong><span>zweiter Task</span></div>
+      <div class="run-cell"><strong>valid A-runs</strong><span>Infra-Fehler ausgeschlossen</span></div>
+      <div class="run-cell"><strong>valid B-runs</strong><span>`tests_total > 0` erforderlich</span></div>
+      <div class="run-cell"><strong>Δ safety</strong><span>unrelated edits, PTP, diff size</span></div>
+      <div class="run-cell"><strong>Trend?</strong><span>Win/Loss/Tie ueber Tasks</span></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-title">
+      <h2>Metriken mit Rollen</h2>
+      <p>Damit der Judge nicht versehentlich das Hauptsignal ersetzt.</p>
+    </div>
+    <div class="metrics">
+      <div class="metric green"><strong>Primaer</strong><p><code>task_success</code>, <code>tests_pass_rate</code>, <code>fail_to_pass_rate</code>, <code>pass_to_pass_rate</code>.</p></div>
+      <div class="metric red"><strong>Safety</strong><p>PASS_TO_PASS-Verlust, unrelated edits, neue Failure-Klassen, Scope-Verletzung.</p></div>
+      <div class="metric amber"><strong>Kosten</strong><p>Diff-Groesse, Dauer, Token-Kosten. Besserer Erfolg darf nicht beliebig teuer werden.</p></div>
+      <div class="metric"><strong>Judge</strong><p>Nur Diagnose und Tiebreaker: Scope, Minimalitaet, Diff-Klarheit.</p></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-title">
+      <h2>Modellursache falsifizieren</h2>
+      <p>Die Modellfrage ist eine eigene A/B-Achse: gleiche Policy, gleiche Aufgabe, anderes Modell.</p>
+    </div>
+    <div class="panel before-after">
+      <div class="side">
+        <h3>Nicht sauber</h3>
+        <div class="node danger"><strong>GPT 5.5 auf Task X</strong><span>andere Condition, Infra-Fehler oder keine Tests.</span></div>
+        <div class="node danger"><strong>MiniMax auf Task Y</strong><span>anderer Task oder andere Policy.</span></div>
+        <div class="node danger"><strong>Schluss</strong><span>Unterschied kann an Modell, Task, Policy oder Infra liegen.</span></div>
+      </div>
+      <div class="arrow">→</div>
+      <div class="side">
+        <h3>Sauber</h3>
+        <div class="node good"><strong>Condition konstant</strong><span>z.B. immer <code>baseline_6line</code>.</span></div>
+        <div class="node good"><strong>Task konstant</strong><span>dieselbe SWE-bench-Instanz fuer beide Modelle.</span></div>
+        <div class="node good"><strong>Modell variiert</strong><span>Dann ist ein schlechteres Modell-Ergebnis ein Gegenbeispiel gegen die Modell-Behauptung.</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-title">
+      <h2>Auswertung starten</h2>
+      <p>Das neue CLI erzeugt Markdown und JSON fuer reproduzierbare A/B-Berichte.</p>
+    </div>
+    <pre class="cmd">uv run harness-science-ab --list
+
+uv run harness-science-ab \
+  --iteration 1 \
+  --baseline baseline_6line \
+  --candidate negative_control_karpathy40
+
+uv run harness-science-ab \
+  --iteration 7 \
+  --baseline baseline_6line \
+  --candidate karpathy_v1 \
+  --min-common-tasks 5 \
+  --min-runs-per-task 5
+
+uv run harness-model-ab --list
+
+uv run harness-model-ab \
+  --iteration 7 \
+  --condition baseline_6line \
+  --baseline-model openai/MiniMax-M2.7 \
+  --candidate-model openai/gpt-5.5 \
+  --min-common-cells 5 \
+  --min-runs-per-cell 5</pre>
+  </section>
+
+  <section>
+    <div class="section-title">
+      <h2>Entscheidungslogik</h2>
+      <p>Der Report trennt Beweis, Trend und Messfehler.</p>
+    </div>
+    <table>
+      <thead>
+        <tr><th>Befund</th><th>Wissenschaftliche Lesart</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Validity Gate = FAIL</td><td>Nicht entscheidbar. Erst Messdesign reparieren.</td></tr>
+        <tr><td>Ein schlechterer Candidate-Task</td><td><code>H_strong</code> falsifiziert, aber <code>H_avg</code> noch offen.</td></tr>
+        <tr><td>Mittleres Delta positiv, CI umfasst 0</td><td>Positiver Trend, noch kein belastbarer Effekt.</td></tr>
+        <tr><td>CI voll ueber 0 fuer harte Erfolgsmetriken</td><td>Candidate unterstuetzt die durchschnittliche Verbesserungsbehauptung im Scope.</td></tr>
+        <tr><td>Safety-Metriken verschlechtern sich</td><td>Candidate ist riskanter, auch wenn Tests besser werden.</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section>
+    <div class="section-title">
+      <h2>Falsifizierende Neubetrachtung</h2>
+      <p>So sieht das Projekt aus, wenn man den Versuchsaufbau mit Falsifizierungs-Erkenntnistheorie neu betrachtet.</p>
+    </div>
+    <div class="panel">
+      <p>
+        FirstHarnessEval ist dann kein Beweisapparat fuer die allgemeine Aussage
+        <code>Karpathy.md ist gut</code>, sondern eine Maschine zur geordneten
+        Widerlegung enger Behauptungen. Jede Policy-Datei und jedes Modell wird
+        als Intervention behandelt; jede Task-Zelle wird zur Gelegenheit, eine
+        starke Behauptung scheitern zu lassen. Erkenntnis entsteht nicht dadurch,
+        dass viele Runs gesammelt werden, sondern dadurch, dass vor dem Run klar
+        ist, welche Beobachtung als Gegenbeispiel zaehlt.
+      </p>
+      <p>
+        In dieser Lesart lautet die wissenschaftliche Frage: Gibt es unter
+        gleichen Tasks, gleicher Policy, gleicher Infrastruktur und gleichem
+        Auswertungsfilter einen validen Fall, in dem die Kandidatenbedingung
+        schlechter abschneidet als die Baseline oder neue Fehler erzeugt? Wenn ja,
+        ist nicht die ganze Idee widerlegt, aber die starke Behauptung fuer diesen
+        Scope ist falsifiziert. Wenn nein, bleibt sie nur vorlaeufig bestehen und
+        muss mit mehr Tasks, mehr Wiederholungen und haerteren Gegenbeispielen
+        weiter angegriffen werden.
+      </p>
+    </div>
+  </section>
+</main>
+</body>
+</html>

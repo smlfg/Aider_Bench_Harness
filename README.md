@@ -59,3 +59,36 @@ uv run harness-summarize --iteration 1
 ```
 
 Each iteration is symmetric: 3 tasks x 5 runs x 2 conditions = 30 runs.
+
+## Scientific A/B Reading
+
+Raw runs are not automatically scientific evidence. Use the A/B layer to filter
+invalid runs, pair tasks, detect counterexamples, and separate strong universal
+claims from average treatment-effect claims.
+
+```bash
+uv run harness-science-ab --list
+
+uv run harness-science-ab \
+  --iteration 1 \
+  --baseline baseline_6line \
+  --candidate negative_control_karpathy40
+
+uv run harness-model-ab --list
+
+uv run harness-model-ab \
+  --iteration 7 \
+  --condition baseline_6line \
+  --baseline-model openai/MiniMax-M2.7 \
+  --candidate-model openai/gpt-5.5
+```
+
+Outputs:
+
+- `results/summary/scientific_ab_iteration_<N>_<baseline>_vs_<candidate>.md`
+- `results/summary/scientific_ab_iteration_<N>_<baseline>_vs_<candidate>.json`
+- `results/summary/model_ab_iteration_<N>_<condition>_<baseline_model>_vs_<candidate_model>.md`
+- `results/summary/model_ab_iteration_<N>_<condition>_<baseline_model>_vs_<candidate_model>.json`
+
+Protocol: [docs/scientific_evaluation_protocol.md](docs/scientific_evaluation_protocol.md)
+Diagram: [web/static/scientific-versuchsaufbau.html](web/static/scientific-versuchsaufbau.html)

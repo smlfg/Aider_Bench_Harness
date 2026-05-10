@@ -402,6 +402,14 @@ async def results_visualizer():
     return page.read_text(encoding="utf-8")
 
 
+@app.get("/scientific-versuchsaufbau", response_class=HTMLResponse)
+async def scientific_versuchsaufbau():
+    page = VIZ_STATIC_DIR / "scientific-versuchsaufbau.html"
+    if not page.exists():
+        raise HTTPException(404, "scientific-versuchsaufbau.html not found")
+    return page.read_text(encoding="utf-8")
+
+
 @app.get("/api/runs")
 async def api_runs(iteration: int | None = None, condition: str | None = None):
     conn = _db()

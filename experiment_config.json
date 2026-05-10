@@ -73,6 +73,30 @@
     "verdict_values": ["support", "mixed", "reject"],
     "note": "Judge is secondary tiebreaker only. Hard metrics always take precedence."
   },
+  "scientific_inference": {
+    "protocol": "docs/scientific_evaluation_protocol.md",
+    "ab_command": "uv run harness-science-ab --iteration <N> --baseline <A> --candidate <B>",
+    "model_ab_command": "uv run harness-model-ab --iteration <N> --condition <POLICY> --baseline-model <MODEL_A> --candidate-model <MODEL_B>",
+    "valid_run_criteria": [
+      "infrastructure_error = 0",
+      "tests_total > 0",
+      "same iteration",
+      "same model_name",
+      "shared task_id between A and B",
+      "stable conventions_hash within each condition"
+    ],
+    "claims": {
+      "H_strong": "Candidate is never worse than baseline in valid paired tasks.",
+      "H_avg": "Candidate improves the average treatment effect on hard metrics.",
+      "H_safety": "Candidate introduces no new regressions, unrelated edits, or failure kinds.",
+      "H_model": "Candidate model improves hard metrics when condition_id and task_id are held constant."
+    },
+    "minimum_design": {
+      "descriptive": "3 common tasks x 3 repeats x 2 conditions",
+      "decision_ready": "5+ common tasks x 5 repeats x 2 conditions",
+      "rule_screening": "baseline + isolated rule conditions x 10 tasks x 5 repeats"
+    }
+  },
   "directories": {
     "artifacts_pattern": "results/{condition_id}/{task_id}/{run_id}/",
     "db_path": "results/experiment.db",

@@ -27,6 +27,8 @@ harness-judge = "runner.judge:main"
 harness-summarize = "runner.summarize:main"
 harness-analyze = "runner.analyze:main"
 harness-fail-fast = "runner.fail_fast:main"
+harness-science-ab = "runner.scientific_ab:main"
+harness-model-ab = "runner.model_ab:main"
 harness-serve = "web.server:main"
 harness-ui = "web.server:main"
 

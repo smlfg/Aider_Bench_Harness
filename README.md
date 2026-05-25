@@ -1,7 +1,34 @@
 # First Real Harness Evaluation
 
-Disposable Aider + SWE-bench Lite harness for measuring whether small
-`CONVENTIONS.md` changes produce measurable coding-agent effects.
+First Real Harness Evaluation is a small measurement rig for testing whether a
+Markdown harness policy changes coding-agent behavior in a reproducible way.
+
+The core question is deliberately narrow:
+
+> Under the same model, task set, and measurement pipeline, does one
+> `CONVENTIONS.md` policy produce better agent behavior than another?
+
+The project currently focuses on Aider + SWE-bench Lite experiments, with hard
+test metrics as the primary evidence and LLM judging only as a secondary
+diagnostic layer.
+
+## Current Status
+
+This repository contains working runner, preflight, summary, scientific A/B, and
+model-comparison tooling. It does **not** yet claim a decisive result for a
+specific policy.
+
+Existing local reports have marked some comparisons as `not_decisive` or
+`not_testable` when the validity gate found too few valid paired runs, zero-test
+runs, infrastructure failures, or no shared task cells. That is intentional: the
+harness separates raw runs from evidence strong enough to support a claim.
+
+## What This Is Not
+
+- Not a general-purpose agent evaluation platform.
+- Not a dashboard product.
+- Not a proof that any broad "Karpathy-style" rule set is generally good.
+- Not a benchmark result unless the validity gate says the comparison is usable.
 
 ## Setup
 
@@ -13,6 +40,9 @@ cp .env.example .env
 Fill `.env` with the MiniMax endpoint settings, `JUDGE_MODEL` (default `openai/MiniMax-M2.7`), and token prices.
 `JUDGE_COMMAND` is optional; when unset, `harness-judge` uses the built-in two-stage judge.
 Keep real secrets out of versioned files.
+
+Real runs require Docker, Aider, model/API access, and enough time and budget for
+SWE-bench Lite task execution.
 
 ## Required Preflight
 
@@ -47,6 +77,13 @@ uv run harness-summarize --iteration 1
 ```
 
 ## Real Flow
+
+Create a candidate policy first, usually by copying a baseline policy and adding
+one explicit policy change:
+
+```bash
+cp harness/CONVENTIONS.baseline.md harness/CONVENTIONS.candidate.md
+```
 
 ```bash
 uv run harness-fetch-candidates --limit 30
